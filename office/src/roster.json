@@ -1,0 +1,443 @@
+{
+ "depts": {
+  "exec": {
+   "name": "老闆室",
+   "color": "#ffb347"
+  },
+  "product": {
+   "name": "產品部",
+   "color": "#6ec6ff"
+  },
+  "design": {
+   "name": "設計部",
+   "color": "#f78fb3"
+  },
+  "eng": {
+   "name": "研發部",
+   "color": "#7bd389"
+  },
+  "ai": {
+   "name": "數據與 AI 部",
+   "color": "#c39bff"
+  },
+  "platform": {
+   "name": "平台部",
+   "color": "#ffd166"
+  },
+  "qa": {
+   "name": "品保部",
+   "color": "#ff7a6b"
+  },
+  "content": {
+   "name": "內容部",
+   "color": "#8fd3c7"
+  }
+ },
+ "roles": [
+  {
+   "slug": "boss",
+   "zh": "老闆",
+   "dept": "exec",
+   "parent": null,
+   "kind": "boss",
+   "team": null,
+   "job": "接下使用者交代的事，判斷規模、分派部門、最後交付。"
+  },
+  {
+   "slug": "project-manager",
+   "zh": "專案經理",
+   "dept": "exec",
+   "parent": "boss",
+   "kind": "maker",
+   "team": null,
+   "job": "把大工作排成計畫：要動用哪些部門、先後順序、哪些可以同時做、每一步的驗收標準；結束時寫結案報告。"
+  },
+  {
+   "slug": "product-director",
+   "zh": "產品總監",
+   "dept": "product",
+   "parent": "boss",
+   "kind": "coordinator",
+   "team": null,
+   "job": "負責「要做什麼、為誰做、做到什麼程度才算完成」。"
+  },
+  {
+   "slug": "requirements-analyst",
+   "zh": "需求分析師",
+   "dept": "product",
+   "parent": "product-director",
+   "kind": "researcher",
+   "team": null,
+   "job": "找出需求裡不清楚、有多種理解、做錯代價高的地方，整理成附選項的問題。"
+  },
+  {
+   "slug": "user-researcher",
+   "zh": "使用者研究員",
+   "dept": "product",
+   "parent": "product-director",
+   "kind": "researcher",
+   "team": null,
+   "job": "釐清誰會用、在什麼情境用、會卡在哪裡，寫成具體的使用情境和驗收標準。"
+  },
+  {
+   "slug": "market-researcher",
+   "zh": "市場研究員",
+   "dept": "product",
+   "parent": "product-director",
+   "kind": "researcher",
+   "team": null,
+   "job": "上網查競品、現成工具和業界做法，整理比較並附來源。"
+  },
+  {
+   "slug": "design-director",
+   "zh": "設計總監",
+   "dept": "design",
+   "parent": "boss",
+   "kind": "coordinator",
+   "team": null,
+   "job": "負責「用起來順不順、看起來對不對」，把關整體體驗和視覺一致性。"
+  },
+  {
+   "slug": "ux-designer",
+   "zh": "UX 設計師",
+   "dept": "design",
+   "parent": "design-director",
+   "kind": "maker",
+   "team": null,
+   "job": "設計流程、操作步驟、資訊架構，畫出使用者從進來到完成的每一步。"
+  },
+  {
+   "slug": "ui-designer",
+   "zh": "UI 設計師",
+   "dept": "design",
+   "parent": "design-director",
+   "kind": "maker",
+   "team": null,
+   "job": "做版面、配色、字體、圖表和頁面，把流程變成看得到的畫面。"
+  },
+  {
+   "slug": "cto",
+   "zh": "技術長",
+   "dept": "eng",
+   "parent": "boss",
+   "kind": "coordinator",
+   "team": null,
+   "job": "負責技術方向和研發的整體品質：決定怎麼做、拆給哪幾組、確保各組做的東西接得起來。"
+  },
+  {
+   "slug": "chief-architect",
+   "zh": "首席架構師",
+   "dept": "eng",
+   "parent": "cto",
+   "kind": "maker",
+   "team": null,
+   "job": "技術選型、系統設計、模組切分、介面規格，評估技術債和擴充性。"
+  },
+  {
+   "slug": "frontend-lead",
+   "zh": "前端組長",
+   "dept": "eng",
+   "parent": "cto",
+   "kind": "lead",
+   "team": "前端組",
+   "job": "帶前端組，負責網頁和 App 畫面；小事自己寫，大的拆給 Web 前端工程師和行動 App 工程師。"
+  },
+  {
+   "slug": "web-engineer",
+   "zh": "Web 前端工程師",
+   "dept": "eng",
+   "parent": "frontend-lead",
+   "kind": "maker",
+   "team": "前端組",
+   "job": "寫網頁和後台介面（HTML、CSS、JavaScript、React、Vue 等）。"
+  },
+  {
+   "slug": "mobile-engineer",
+   "zh": "行動 App 工程師",
+   "dept": "eng",
+   "parent": "frontend-lead",
+   "kind": "maker",
+   "team": "前端組",
+   "job": "寫手機 App（Flutter、React Native、Android 和 iOS 原生）。"
+  },
+  {
+   "slug": "backend-lead",
+   "zh": "後端組長",
+   "dept": "eng",
+   "parent": "cto",
+   "kind": "lead",
+   "team": "後端組",
+   "job": "帶後端組，負責 API、資料庫和外部串接；小事自己寫，大的拆給組員。"
+  },
+  {
+   "slug": "api-engineer",
+   "zh": "API 工程師",
+   "dept": "eng",
+   "parent": "backend-lead",
+   "kind": "maker",
+   "team": "後端組",
+   "job": "寫 API 和商業邏輯，處理輸入驗證、錯誤處理和權限。"
+  },
+  {
+   "slug": "database-engineer",
+   "zh": "資料庫工程師",
+   "dept": "eng",
+   "parent": "backend-lead",
+   "kind": "maker",
+   "team": "後端組",
+   "job": "設計資料表、寫 migration、調整 SQL 效能、處理資料一致性。"
+  },
+  {
+   "slug": "integration-engineer",
+   "zh": "整合工程師",
+   "dept": "eng",
+   "parent": "backend-lead",
+   "kind": "maker",
+   "team": "後端組",
+   "job": "串接第三方 API、金流、訊息佇列、Webhook。"
+  },
+  {
+   "slug": "device-lead",
+   "zh": "裝置組長",
+   "dept": "eng",
+   "parent": "cto",
+   "kind": "lead",
+   "team": "裝置整合組",
+   "job": "帶裝置整合組，負責 IoT 裝置和機器人的軟硬體串接。"
+  },
+  {
+   "slug": "iot-engineer",
+   "zh": "IoT 工程師",
+   "dept": "eng",
+   "parent": "device-lead",
+   "kind": "maker",
+   "team": "裝置整合組",
+   "job": "處理 MQTT、裝置指令、遙測資料和裝置狀態同步。"
+  },
+  {
+   "slug": "robotics-engineer",
+   "zh": "機器人工程師",
+   "dept": "eng",
+   "parent": "device-lead",
+   "kind": "maker",
+   "team": "裝置整合組",
+   "job": "處理機器手臂、硬體 SDK、運動控制流程和任務狀態。"
+  },
+  {
+   "slug": "chief-ai-officer",
+   "zh": "AI 長",
+   "dept": "ai",
+   "parent": "boss",
+   "kind": "coordinator",
+   "team": null,
+   "job": "負責 AI 和數據的方向：判斷該用傳統機器學習、LLM，還是根本不用 AI，再分派給各組。"
+  },
+  {
+   "slug": "ai-researcher",
+   "zh": "AI 研究員",
+   "dept": "ai",
+   "parent": "chief-ai-officer",
+   "kind": "researcher",
+   "team": null,
+   "job": "追新模型、論文和方法，評估可不可行、成本多少、有什麼限制。"
+  },
+  {
+   "slug": "data-analyst",
+   "zh": "資料分析師",
+   "dept": "ai",
+   "parent": "chief-ai-officer",
+   "kind": "maker",
+   "team": null,
+   "job": "整理資料、做統計、算數字、出報表和圖表。"
+  },
+  {
+   "slug": "mlops-engineer",
+   "zh": "MLOps 工程師",
+   "dept": "ai",
+   "parent": "chief-ai-officer",
+   "kind": "maker",
+   "team": null,
+   "job": "模型部署、推論服務、版本管理、監控和成本控制。"
+  },
+  {
+   "slug": "ml-lead",
+   "zh": "ML 組長",
+   "dept": "ai",
+   "parent": "chief-ai-officer",
+   "kind": "lead",
+   "team": "機器學習組",
+   "job": "帶機器學習組，負責從資料到模型的整條流程。"
+  },
+  {
+   "slug": "data-engineer",
+   "zh": "資料工程師",
+   "dept": "ai",
+   "parent": "ml-lead",
+   "kind": "maker",
+   "team": "機器學習組",
+   "job": "資料蒐集、清理、ETL、特徵工程和資料品質檢查。"
+  },
+  {
+   "slug": "model-engineer",
+   "zh": "模型工程師",
+   "dept": "ai",
+   "parent": "ml-lead",
+   "kind": "maker",
+   "team": "機器學習組",
+   "job": "訓練和調整模型，包含電腦視覺、時間序列預測和最佳化演算法。"
+  },
+  {
+   "slug": "model-evaluator",
+   "zh": "模型評估工程師",
+   "dept": "ai",
+   "parent": "ml-lead",
+   "kind": "maker",
+   "team": "機器學習組",
+   "job": "設計評估指標和測試集，做錯誤分析，檢查偏差和過擬合。"
+  },
+  {
+   "slug": "llm-lead",
+   "zh": "LLM 組長",
+   "dept": "ai",
+   "parent": "chief-ai-officer",
+   "kind": "lead",
+   "team": "LLM 應用組",
+   "job": "帶 LLM 應用組，負責用大型語言模型做出可靠的功能。"
+  },
+  {
+   "slug": "prompt-engineer",
+   "zh": "提示詞工程師",
+   "dept": "ai",
+   "parent": "llm-lead",
+   "kind": "maker",
+   "team": "LLM 應用組",
+   "job": "設計提示詞、範例和輸出格式，讓模型穩定產出要的結果。"
+  },
+  {
+   "slug": "rag-engineer",
+   "zh": "RAG 工程師",
+   "dept": "ai",
+   "parent": "llm-lead",
+   "kind": "maker",
+   "team": "LLM 應用組",
+   "job": "做檢索增強生成：文件切分、向量資料庫、檢索策略、引用來源。"
+  },
+  {
+   "slug": "agent-engineer",
+   "zh": "Agent 工程師",
+   "dept": "ai",
+   "parent": "llm-lead",
+   "kind": "maker",
+   "team": "LLM 應用組",
+   "job": "設計工具呼叫、多 agent 流程、MCP 串接和出錯時的恢復機制。"
+  },
+  {
+   "slug": "platform-director",
+   "zh": "平台主管",
+   "dept": "platform",
+   "parent": "boss",
+   "kind": "coordinator",
+   "team": null,
+   "job": "負責環境、部署和資安，讓東西穩定、安全地跑起來。"
+  },
+  {
+   "slug": "devops-engineer",
+   "zh": "DevOps 工程師",
+   "dept": "platform",
+   "parent": "platform-director",
+   "kind": "maker",
+   "team": null,
+   "job": "安裝與環境設定、部署、CI/CD、自動化腳本。"
+  },
+  {
+   "slug": "security-engineer",
+   "zh": "資安工程師",
+   "dept": "platform",
+   "parent": "platform-director",
+   "kind": "checker",
+   "team": null,
+   "job": "檢查漏洞、權限設定、金鑰外洩、隱私和資料保護。"
+  },
+  {
+   "slug": "qa-manager",
+   "zh": "品保經理",
+   "dept": "qa",
+   "parent": "boss",
+   "kind": "coordinator",
+   "team": null,
+   "job": "負責品質把關：決定要做哪些檢查、彙整意見、判斷能不能交付。"
+  },
+  {
+   "slug": "reviewer",
+   "zh": "審查員",
+   "dept": "qa",
+   "parent": "qa-manager",
+   "kind": "checker",
+   "team": null,
+   "job": "逐條對照需求、逐段（程式逐行）檢查錯誤和遺漏，每個問題都附證據並分級。"
+  },
+  {
+   "slug": "test-engineer",
+   "zh": "測試工程師",
+   "dept": "qa",
+   "parent": "qa-manager",
+   "kind": "maker",
+   "team": null,
+   "job": "寫測試、跑測試、重現問題、找極端情況。"
+  },
+  {
+   "slug": "red-team",
+   "zh": "紅隊",
+   "dept": "qa",
+   "parent": "qa-manager",
+   "kind": "checker",
+   "team": null,
+   "job": "從多個不同角度唱反調、找盲點和沒想到的情況、提出替代做法。"
+  },
+  {
+   "slug": "fact-checker",
+   "zh": "查核員",
+   "dept": "qa",
+   "parent": "qa-manager",
+   "kind": "checker",
+   "team": null,
+   "job": "核對事實、數字、日期、引用和來源。"
+  },
+  {
+   "slug": "content-director",
+   "zh": "內容總監",
+   "dept": "content",
+   "parent": "boss",
+   "kind": "coordinator",
+   "team": null,
+   "job": "負責所有給人看的文字：清楚、正確、語氣一致。"
+  },
+  {
+   "slug": "tech-writer",
+   "zh": "技術文件寫手",
+   "dept": "content",
+   "parent": "content-director",
+   "kind": "maker",
+   "team": null,
+   "job": "寫說明文件、安裝步驟、教學、規格書、README。"
+  },
+  {
+   "slug": "copywriter",
+   "zh": "文案寫手",
+   "dept": "content",
+   "parent": "content-director",
+   "kind": "maker",
+   "team": null,
+   "job": "寫文章、簡報稿、行銷文案、故事和小說。"
+  },
+  {
+   "slug": "translator",
+   "zh": "翻譯",
+   "dept": "content",
+   "parent": "content-director",
+   "kind": "maker",
+   "team": null,
+   "job": "中英翻譯、在地化、統一用詞。"
+  }
+ ]
+}

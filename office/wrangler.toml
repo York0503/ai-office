@@ -1,0 +1,22 @@
+# AI 辦公室監控後台
+name = "ai-office"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "OFFICE"
+class_name = "Office"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Office"]
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+# 兩個密碼用 secret 設定，不寫在這裡：
+#   INGEST_TOKEN  hooks 送事件用
+#   VIEW_TOKEN    打開監控畫面用

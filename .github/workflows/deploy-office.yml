@@ -1,0 +1,28 @@
+name: 部署監控後台
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "office/**"
+      - ".github/workflows/deploy-office.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 部署到 Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: office
+          wranglerVersion: "4.156.2"
+          secrets: |
+            INGEST_TOKEN
+            VIEW_TOKEN
+        env:
+          INGEST_TOKEN: ${{ secrets.OFFICE_INGEST_TOKEN }}
+          VIEW_TOKEN: ${{ secrets.OFFICE_VIEW_TOKEN }}
