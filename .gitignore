@@ -1,4 +1,22 @@
-node_modules/
-.wrangler/
+# ---- 私人設定：永遠不上傳 ----
+config/*
+!config/office.example.json
+!config/README.md
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
 office/.dev.vars
+
+# ---- 其他 ----
+node_modules/
+__pycache__/
+*.pyc
+.wrangler/
+_upstream/
+changed.txt
 .DS_Store

@@ -1,5 +1,0 @@
-{
-  "ingest_url": "",
-  "send_thinking": true,
-  "_說明": "ingest_url 填你的監控後台網址，例如 https://ai-office.你的帳號.workers.dev/ingest。留空就不送任何東西。"
-}

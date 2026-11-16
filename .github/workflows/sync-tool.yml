@@ -1,0 +1,50 @@
+name: 同步工具更新 / Sync tool
+# 只在私人的工作專案跑：從上游的公開工具專案拉最新的員工設定、hooks、監控程式，開成 PR 讓你看過再合併。
+# 上游預設是 config/office.example.json 的 sync.upstream_repo；也可以設 repository variable OFFICE_UPSTREAM_REPO。
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 1 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    if: github.event.repository.private == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 找出上游專案
+        id: up
+        env:
+          VAR_UPSTREAM: ${{ vars.OFFICE_UPSTREAM_REPO }}
+        run: |
+          if [ -n "$VAR_UPSTREAM" ]; then echo "repo=$VAR_UPSTREAM" >> "$GITHUB_OUTPUT"; else
+          echo "repo=$(python3 -c "import json;print(json.load(open('config/office.example.json'))['sync']['upstream_repo'])")" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.up.outputs.repo }}
+          path: _upstream
+      - name: 同步工具檔案
+        run: |
+          python3 scripts/sync_tool.py _upstream .
+          rm -rf _upstream
+      - name: 開 PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then echo "工具已經是最新版。" >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          BR="tool-sync/$(date +%Y%m%d-%H%M)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BR"
+          git add -A
+          git commit -m "同步工具更新"
+          git push origin "$BR"
+          gh pr create --head "$BR" --title "同步工具更新" \
+            --body "從上游工具專案同步的變更。合併前請看一下有沒有蓋掉你在這個專案自己改過的地方。" \
+          || echo "沒辦法自動開 PR（要在 Settings → Actions → General 勾選允許 GitHub Actions 建立 PR）。請到 https://github.com/$REPO/compare/$BR 手動開。" >> "$GITHUB_STEP_SUMMARY"

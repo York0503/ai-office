@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 """AI 辦公室：把 Claude Code 的 hook 事件送到監控後台。
 
-- 由 .claude/settings.json 以 async 方式呼叫，不會拖慢 Claude。
-- 任何錯誤都安靜跳過（exit 0、不輸出任何東西），監控掛了也不影響工作。
-- 後台網址：環境變數 OFFICE_INGEST_URL，或 .claude/office.json 的 ingest_url。
-- 驗證：雲端版由「network secret」在請求離開 VM 後自動加上 Authorization；
-  在自己電腦上跑時，可以用環境變數 OFFICE_INGEST_TOKEN。
+- 以 async 方式執行，不會拖慢 Claude；任何錯誤都安靜跳過（exit 0、不輸出）。
+- 送出前會遮罩看起來像金鑰、密碼、token 的字串；.env、金鑰檔這類檔案的內容完全不送。
+- 沒設定監控網址（monitor.ingest_url / OFFICE_INGEST_URL）就什麼都不送。
 """
 import fcntl
 import glob
@@ -14,14 +12,17 @@ import hashlib
 import json
 import os
 import pathlib
-import subprocess
 import sys
 import time
-import urllib.request
 
-MAX_STR = 1500          # 單一字串欄位最多保留幾個字
-MAX_EVENT_BYTES = 24000 # 單一事件 JSON 上限
-SKIP_KEYS = {"transcript_path"}  # 本機路徑，對畫面沒用
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import office_config as oc  # noqa: E402
+
+MAX_STR = 1500
+MAX_EVENT_BYTES = 24000
+SKIP_KEYS = {"transcript_path"}
+HIDDEN = "（敏感檔案，內容不送出）"
 
 
 def debug(msg):
@@ -31,18 +32,6 @@ def debug(msg):
                 f.write(time.strftime("%H:%M:%S ") + msg + "\n")
         except Exception:
             pass
-
-
-def load_cfg():
-    proj = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-    cfg = {}
-    try:
-        cfg = json.loads((pathlib.Path(proj) / ".claude" / "office.json").read_text(encoding="utf-8"))
-    except Exception:
-        pass
-    url = (os.environ.get("OFFICE_INGEST_URL") or cfg.get("ingest_url") or "").strip()
-    token = (os.environ.get("OFFICE_INGEST_TOKEN") or "").strip()
-    return url, token, cfg
 
 
 def trim(v, n=MAX_STR):
@@ -58,8 +47,26 @@ def trim(v, n=MAX_STR):
     return v
 
 
-def build_event(inp):
+def hide_sensitive_files(ev):
+    """讀寫敏感檔案時，把檔案內容整個拿掉，只留檔名。"""
+    ti = ev.get("tool_input")
+    if not isinstance(ti, dict):
+        return ev
+    path = ti.get("file_path") or ti.get("notebook_path") or ti.get("path")
+    if path and oc.is_sensitive_path(path):
+        for k in ("content", "new_string", "old_string", "edits", "new_source"):
+            if k in ti:
+                ti[k] = HIDDEN
+        if "tool_response" in ev:
+            ev["tool_response"] = HIDDEN
+        ev["sensitive_file"] = True
+    return ev
+
+
+def build_event(inp, secrets):
     ev = {k: v for k, v in inp.items() if k not in SKIP_KEYS}
+    ev = hide_sensitive_files(ev)
+    ev = oc.mask_obj(ev, secrets)
     ev["ts"] = int(time.time() * 1000)
     for n in (MAX_STR, 400, 120):
         out = trim(ev, n)
@@ -78,17 +85,14 @@ def _agent_from_file(path):
     return stem[6:] if stem.startswith("agent-") else stem
 
 
-def collect_thinking(inp, cfg):
-    if cfg.get("send_thinking") is False:
-        return []
+def collect_thinking(inp, secrets):
     tp = inp.get("transcript_path")
     sid = inp.get("session_id") or "unknown"
     if not tp:
         return []
     main = pathlib.Path(tp)
     files = {str(main): None}
-    for pattern in (main.parent / main.stem / "subagents" / "*.jsonl",
-                    main.parent / main.stem / "*.jsonl"):
+    for pattern in (main.parent / main.stem / "subagents" / "*.jsonl", main.parent / main.stem / "*.jsonl"):
         for f in glob.glob(str(pattern)):
             files.setdefault(f, _agent_from_file(f))
     atp = inp.get("agent_transcript_path")
@@ -101,7 +105,7 @@ def collect_thinking(inp, cfg):
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
-        return []  # 別的 hook 正在讀，下一個事件再補
+        return []
     out = []
     try:
         try:
@@ -139,7 +143,7 @@ def collect_thinking(inp, cfg):
                                 "hook_event_name": "Thinking",
                                 "session_id": sid,
                                 "agent_id": obj.get("agentId") or file_agent,
-                                "text": trim(text, 4000),
+                                "text": trim(oc.mask_text(text, secrets), 4000),
                                 "ts": int(time.time() * 1000),
                             })
         state_path.write_text(json.dumps(state))
@@ -149,44 +153,26 @@ def collect_thinking(inp, cfg):
     return out[:30]
 
 
-def post(url, token, payload):
-    data = json.dumps(payload, ensure_ascii=False).encode()
-    args = ["curl", "-sS", "-m", "8", "-o", "/dev/null", "-w", "%{http_code}",
-            "-X", "POST", "-H", "Content-Type: application/json"]
-    if token:
-        args += ["-H", f"Authorization: Bearer {token}"]
-    try:
-        r = subprocess.run(args + ["--data-binary", "@-", url], input=data,
-                           capture_output=True, timeout=10)
-        debug(f"curl {r.stdout.decode(errors='ignore')} {r.stderr.decode(errors='ignore')[:200]}")
-        return
-    except FileNotFoundError:
-        pass
-    req = urllib.request.Request(url, data=data, method="POST",
-                                 headers={"Content-Type": "application/json"})
-    if token:
-        req.add_header("Authorization", f"Bearer {token}")
-    with urllib.request.urlopen(req, timeout=8) as resp:
-        debug(f"urllib {resp.status}")
-
-
 def main():
-    url, token, cfg = load_cfg()
-    if not url:
+    cfg = oc.load()
+    if not (cfg.get("monitor", {}).get("ingest_url") or "").strip():
         return
     raw = sys.stdin.read()
     inp = json.loads(raw) if raw.strip() else {}
-    events = [build_event(inp)]
-    try:
-        events += collect_thinking(inp, cfg)
-    except Exception as e:
-        debug(f"thinking: {e!r}")
-    post(url, token, {"events": events})
+    secrets = oc.known_secret_values(cfg)
+    events = [build_event(inp, secrets)]
+    if cfg.get("monitor", {}).get("send_thinking", True):
+        try:
+            events += collect_thinking(inp, secrets)
+        except Exception as e:
+            debug(f"thinking: {e!r}")
+    oc.post_events(cfg, events, wait=True)
+    debug(f"sent {len(events)} {inp.get('hook_event_name')}")
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:  # 監控壞掉也不能影響工作
+    except Exception as e:
         debug(f"error: {e!r}")
     sys.exit(0)

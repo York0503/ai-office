@@ -1,0 +1,3 @@
+#!/bin/sh
+# commit 前檢查有沒有金鑰或敏感檔案（由 .claude/hooks/session_setup.py 或 scripts/install-git-hooks.sh 接上）
+exec python3 "$(git rev-parse --show-toplevel)/scripts/check_secrets.py" --staged

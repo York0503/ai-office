@@ -1,0 +1,35 @@
+name: 公開專案守門 / Public repo guard
+# 只在公開專案跑：推上來的檔案必須都在工具範圍內，而且不能有金鑰。
+# 失敗時 GitHub 會寄信通知推送的人。
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 找出這次變動的檔案
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then BASE="$PR_BASE"; HEAD="$PR_HEAD"; else BASE="$PUSH_BEFORE"; HEAD="$PUSH_AFTER"; fi
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then BASE=$(git hash-object -t tree /dev/null); fi
+          git diff --name-only --diff-filter=ACMR "$BASE" "$HEAD" > changed.txt || git ls-files > changed.txt
+          echo "變動的檔案："; cat changed.txt
+      - name: 檢查檔案範圍
+        run: python3 scripts/check_public_paths.py changed.txt
+      - name: 檢查金鑰
+        run: python3 scripts/check_secrets.py --files-from changed.txt

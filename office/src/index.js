@@ -40,8 +40,8 @@ const LOGIN = `<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
 form{display:grid;gap:12px;padding:24px;background:#1f2c37;border:1px solid #34495a;border-radius:10px;width:min(320px,90vw)}
 input,button{font:inherit;padding:10px 12px;border-radius:6px;border:1px solid #34495a;background:#17212a;color:inherit}
 button{background:#ffb347;color:#17212a;font-weight:700;border:0;cursor:pointer}</style></head>
-<body><form method="get" action="/"><b>AI 辦公室</b><label for="k">觀看密碼</label>
-<input id="k" name="k" type="password" autocomplete="current-password" required><button>進入</button></form></body></html>`;
+<body><form method="get" action="/"><b>AI 辦公室 · AI Office</b><label for="k">觀看密碼 / Password</label>
+<input id="k" name="k" type="password" autocomplete="current-password" required><button>進入 / Enter</button></form></body></html>`;
 
 export default {
   async fetch(req, env) {

@@ -6,6 +6,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session_setup.py\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/office_hook.py\"",
             "async": true
           }
@@ -17,6 +26,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/dispatch_limit.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/office_hook.py\"",
             "async": true
           }
@@ -24,6 +42,26 @@
       }
     ],
     "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/dispatch_limit.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_push.py\"",
+            "timeout": 30
+          }
+        ]
+      },
       {
         "hooks": [
           {

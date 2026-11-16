@@ -1,0 +1,45 @@
+{
+  "_說明": "這是範本，會上傳到 GitHub。複製一份成 config/office.json 填你的真實設定；office.json 被 .gitignore 擋住，不會上傳。雲端對話讀不到 office.json，雲端要用的值請放在 claude.ai/code 雲端環境的「環境變數」和「Network secrets」。讀取順序：環境變數 → config/office.json → 這個範本。",
+  "_about": "Template, committed to git. Copy to config/office.json for your real values (gitignored). Cloud sessions can't see office.json: put cloud values in your cloud environment's variables and network secrets. Order: env vars -> config/office.json -> this file.",
+
+  "monitor": {
+    "ingest_url": "",
+    "ingest_token": "",
+    "view_token": "",
+    "send_thinking": true
+  },
+
+  "cloudflare": {
+    "account_id": "",
+    "api_token": ""
+  },
+
+  "limits": {
+    "max_dispatch_per_round": 30
+  },
+
+  "guard": {
+    "tool_repo": "ai-office",
+    "tool_paths": [
+      "CLAUDE.md",
+      "README.md",
+      "README.*.md",
+      "LICENSE",
+      ".gitignore",
+      ".claude/agents/**",
+      ".claude/hooks/**",
+      ".claude/settings.json",
+      "config/office.example.json",
+      "config/README.md",
+      "office/**",
+      ".github/**",
+      ".githooks/**",
+      "scripts/**"
+    ]
+  },
+
+  "sync": {
+    "upstream_repo": "York0503/ai-office",
+    "skip": ["README.md", "README.*.md", "LICENSE"]
+  }
+}

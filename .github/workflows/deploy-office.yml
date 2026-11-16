@@ -1,4 +1,4 @@
-name: 部署監控後台
+name: 部署監控後台 / Deploy monitor
 
 on:
   push:
@@ -8,12 +8,22 @@ on:
       - ".github/workflows/deploy-office.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
+      - name: 沒有設定 Cloudflare 金鑰就略過
+        if: env.HAS_TOKEN != 'true'
+        run: echo "這個專案沒有設定 CLOUDFLARE_API_TOKEN，略過部署。" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
+        if: env.HAS_TOKEN == 'true'
       - name: 部署到 Cloudflare Workers
+        if: env.HAS_TOKEN == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

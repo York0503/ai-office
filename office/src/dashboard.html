@@ -54,6 +54,8 @@ body { overflow-x: hidden; }
 .stat b { color: var(--ink); font-variant-numeric: tabular-nums; margin-left: 4px; }
 .stat.bad b { color: var(--bad); }
 .tabs { display: flex; gap: 4px; }
+.lang { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.lang b { color: var(--ink); }
 .tabs button { background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 5px 14px; cursor: pointer; color: var(--muted); }
 .tabs button[aria-selected="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
 
@@ -162,15 +164,16 @@ svg.sprite { image-rendering: pixelated; display: block; }
   <div class="bar">
     <div class="row1">
       <span class="brand">AI OFFICE</span>
-      <select id="sessionSel" aria-label="選擇對話"></select>
-      <span class="live" id="live"><i></i><span id="liveTxt">連線中</span></span>
+      <select id="sessionSel" aria-label="session"></select>
+      <span class="live" id="live"><i></i><span id="liveTxt"></span></span>
+      <button class="lang" id="langBtn" type="button" aria-label="中文 / English"></button>
     </div>
     <div class="row1">
       <div class="stats" id="stats"></div>
       <div class="tabs" role="tablist" style="margin-left:auto">
-        <button role="tab" id="tab-office" aria-selected="true" data-view="office">辦公室</button>
-        <button role="tab" id="tab-tree" aria-selected="false" data-view="tree">派工樹</button>
-        <button role="tab" id="tab-log" aria-selected="false" data-view="log">紀錄</button>
+        <button role="tab" id="tab-office" aria-selected="true" data-view="office" data-i18n="tabOffice"></button>
+        <button role="tab" id="tab-tree" aria-selected="false" data-view="tree" data-i18n="tabTree"></button>
+        <button role="tab" id="tab-log" aria-selected="false" data-view="log" data-i18n="tabLog"></button>
       </div>
     </div>
   </div>
@@ -181,10 +184,10 @@ svg.sprite { image-rendering: pixelated; display: block; }
 
   <section class="view" id="view-office">
     <div class="roundbar">
-      <div class="prompt" id="promptBox"><small>這一輪你交代的事</small><p id="promptTxt">還沒有收到任何指令。</p></div>
+      <div class="prompt" id="promptBox"><small data-i18n="promptLabel"></small><p id="promptTxt"></p></div>
       <div style="display:grid;gap:6px">
-        <select id="roundSel" aria-label="選擇第幾輪"></select>
-        <label class="toggle"><input type="checkbox" id="onlyActive"> 只看這輪有動的人</label>
+        <select id="roundSel" aria-label="round"></select>
+        <label class="toggle"><input type="checkbox" id="onlyActive"> <span data-i18n="onlyActive"></span></label>
       </div>
     </div>
     <div class="rooms" id="rooms"></div>
@@ -196,13 +199,13 @@ svg.sprite { image-rendering: pixelated; display: block; }
 
   <section class="view" id="view-log" hidden>
     <div class="logtools">
-      <input type="search" id="logSearch" placeholder="搜尋紀錄（人名、檔名、指令…）" aria-label="搜尋紀錄">
-      <button class="chip" data-f="all" aria-pressed="true">全部</button>
-      <button class="chip" data-f="dispatch" aria-pressed="false">派工</button>
-      <button class="chip" data-f="tool" aria-pressed="false">動作</button>
-      <button class="chip" data-f="think" aria-pressed="false">思考</button>
-      <button class="chip" data-f="report" aria-pressed="false">回報</button>
-      <button class="chip" data-f="error" aria-pressed="false">錯誤</button>
+      <input type="search" id="logSearch" aria-label="search">
+      <button class="chip" data-f="all" aria-pressed="true" data-i18n="fAll"></button>
+      <button class="chip" data-f="dispatch" aria-pressed="false" data-i18n="fDispatch"></button>
+      <button class="chip" data-f="tool" aria-pressed="false" data-i18n="fTool"></button>
+      <button class="chip" data-f="think" aria-pressed="false" data-i18n="fThink"></button>
+      <button class="chip" data-f="report" aria-pressed="false" data-i18n="fReport"></button>
+      <button class="chip" data-f="error" aria-pressed="false" data-i18n="fError"></button>
     </div>
     <div class="log" id="log"></div>
   </section>
@@ -219,7 +222,74 @@ svg.sprite { image-rendering: pixelated; display: block; }
   const ROLE = {};
   ROSTER.roles.forEach(r => { ROLE[r.slug] = r; });
   const DEPT_ORDER = ["exec", "product", "design", "eng", "ai", "platform", "qa", "content"];
-  const CONTRACT = { name: "外包", color: "#9db0b8" };
+
+  // ---------- 語言 / language ----------
+  const I18N = {
+    zh: {
+      tabOffice: "辦公室", tabTree: "派工樹", tabLog: "紀錄", promptLabel: "這一輪你交代的事", noPrompt: "還沒有收到任何指令。",
+      onlyActive: "只看這輪有動的人", search: "搜尋紀錄（人名、檔名、指令…）",
+      fAll: "全部", fDispatch: "派工", fTool: "動作", fThink: "思考", fReport: "回報", fError: "錯誤",
+      connecting: "連線中", live: "即時", stopped: "已停止", noBackend: "連不上後台", dropped: "連線中斷", demo: "示範中", demoEnd: "示範結束，6 秒後重播",
+      sActive: "這輪出動", sPeople: "人", sDispatch: "派工", sTools: "動作", sErrors: "錯誤", sTime: "耗時", min: "分", sec: "秒",
+      round: n => `第 ${n} 輪：`, empty: "（無內容）", none: "尚無",
+      working: n => `${n} 人工作中`, people: n => `${n} 人`, contract: "外包", contractSub: "不在組織表裡的 agent",
+      st: { idle: "閒置", working: "工作中", waiting: "等你回覆", done: "完成", error: "出錯" },
+      noTree: "這一輪還沒有派工。", noLog: "沒有符合的紀錄。",
+      job: "職責", notInRoster: "不在組織表裡的 agent（例如內建的 Explore、general-purpose）。", notActive: "這一輪沒有出動。",
+      nth: n => `第 ${n} 位`, status: "狀態", by: x => `由 ${x} 指派`, errs: n => `錯誤 ${n} 次`, task: "接到的任務",
+      thoughts: n => `思考摘要（${n}）`, timeline: "動作紀錄", delivered: "交付給你的內容", report: "交回的成果", close: "關閉",
+      boss: "老闆", contractor: t => "外包：" + t,
+      noEvents: "<b>還沒有收到任何事件。</b>在 Claude App 的 Code 開一個工作專案的雲端對話、交代一件事，這裡就會開始動。",
+      backendErr: "<b>連不上監控後台。</b>",
+      demoNotice: "<b>示範模式</b>：這是模擬的一輪工作，讓你先看畫面長怎樣。接上後台之後就會顯示真的紀錄。",
+      demoSession: "示範：庫存預測功能",
+      // 事件 / events
+      youSaid: "你交代：", reading: "看你交代的事", received: "收到：", started: "上工", gotTask: "接到任務：", assignedBy: x => `（${x} 指派）`,
+      doneTool: "完成：", failTool: "失敗：", reported: "交回成果", reportX: "交回成果：", thinking: "思考：", delivered2: "交付給你", deliveredX: "交付：",
+      stopFail: "這輪因錯誤中斷", notice: "通知：", sessStart: "開始對話", sessEnd: "對話結束", compact: "整理對話（壓縮）",
+      taskAdd: "新增待辦：", taskDone: "完成待辦：", dispatchBlocked: n => `派工被擋：已達本輪上限 ${n} 人次`, pushBlocked: "推送被擋：",
+      // 動作 / tools
+      tBash: "執行指令：", tRead: "讀檔：", tWrite: "寫檔：", tEdit: "修改：", tNb: "改筆記本：", tSearch: "上網搜尋：", tFetch: "讀網頁：",
+      sep: "：", paren: x => `（${x}）`,
+      tAgent: x => `派工給 ${x}：`, tAsk: "用按鈕問你問題", tTodo: "更新待辦清單", tFind: "找檔案：", tSkill: "使用技能：", tMcp: "使用工具：", tAny: "動作",
+    },
+    en: {
+      tabOffice: "Office", tabTree: "Tree", tabLog: "Log", promptLabel: "Your request this round", noPrompt: "No request yet.",
+      onlyActive: "Only show who's active", search: "Search the log (names, files, commands…)",
+      fAll: "All", fDispatch: "Dispatch", fTool: "Actions", fThink: "Thinking", fReport: "Reports", fError: "Errors",
+      connecting: "Connecting", live: "Live", stopped: "Idle", noBackend: "Backend unreachable", dropped: "Disconnected", demo: "Demo", demoEnd: "Demo over, replaying in 6s",
+      sActive: "Active", sPeople: "", sDispatch: "Dispatches", sTools: "Actions", sErrors: "Errors", sTime: "Elapsed", min: "m ", sec: "s",
+      round: n => `Round ${n}: `, empty: "(empty)", none: "None",
+      working: n => `${n} working`, people: n => `${n} people`, contract: "Contractors", contractSub: "Agents not in the org chart",
+      st: { idle: "Idle", working: "Working", waiting: "Waiting for you", done: "Done", error: "Error" },
+      noTree: "No dispatches this round yet.", noLog: "No matching entries.",
+      job: "Role", notInRoster: "Not in the org chart (for example the built-in Explore or general-purpose agents).", notActive: "Not active this round.",
+      nth: n => `#${n}`, status: "Status", by: x => `assigned by ${x}`, errs: n => n === 1 ? "1 error" : `${n} errors`, task: "Task",
+      thoughts: n => `Thinking summaries (${n})`, timeline: "Activity", delivered: "Delivered to you", report: "Report", close: "Close",
+      boss: "Boss", contractor: t => "Contractor: " + t,
+      noEvents: "<b>No events yet.</b> Open a cloud session on your work repo in the Claude app (Code tab) and give it a task.",
+      backendErr: "<b>Can't reach the monitor backend.</b> ",
+      demoNotice: "<b>Demo mode</b>: a simulated round so you can see what the screen looks like. Connect the backend to see real activity.",
+      demoSession: "Demo: inventory forecast",
+      youSaid: "You: ", reading: "Reading your request", received: "Received: ", started: "Started", gotTask: "Got task: ", assignedBy: x => ` (assigned by ${x})`,
+      doneTool: "Done: ", failTool: "Failed: ", reported: "Reported back", reportX: "Report: ", thinking: "Thinking: ", delivered2: "Delivered", deliveredX: "Delivered: ",
+      stopFail: "Round stopped by an error", notice: "Notice: ", sessStart: "Session started", sessEnd: "Session ended", compact: "Compacting conversation",
+      taskAdd: "Task added: ", taskDone: "Task done: ", dispatchBlocked: n => `Dispatch blocked: round limit of ${n} reached`, pushBlocked: "Push blocked: ",
+      tBash: "Run: ", tRead: "Read: ", tWrite: "Write: ", tEdit: "Edit: ", tNb: "Edit notebook: ", tSearch: "Search web: ", tFetch: "Fetch: ",
+      sep: ": ", paren: x => ` (${x})`,
+      tAgent: x => `Dispatch to ${x}: `, tAsk: "Asking you with buttons", tTodo: "Updating to-dos", tFind: "Find files: ", tSkill: "Use skill: ", tMcp: "Use tool: ", tAny: "Action",
+    },
+  };
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  let LANG = store("office_lang") || ((navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en");
+  if (!I18N[LANG]) LANG = "zh";
+  let T = I18N[LANG];
+  function applyStatic() {
+    document.documentElement.lang = LANG === "zh" ? "zh-Hant" : "en";
+    document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = T[el.dataset.i18n]; });
+    $("#logSearch").placeholder = T.search;
+    $("#langBtn").innerHTML = LANG === "zh" ? "<b>中</b> / EN" : "中 / <b>EN</b>";
+  }
 
   // ---------- 小工具 ----------
   const $ = s => document.querySelector(s);
@@ -227,9 +297,12 @@ svg.sprite { image-rendering: pixelated; display: block; }
   const short = (s, n) => { s = String(s || "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n) + "…" : s; };
   const base = p => String(p || "").split("/").pop();
   const host = u => { try { return new URL(u).host; } catch (e) { return short(u, 30); } };
-  const hhmmss = ts => { const d = new Date(ts || Date.now()); return d.toTimeString().slice(0, 8); };
+  const hhmmss = ts => new Date(ts || Date.now()).toTimeString().slice(0, 8);
   const roleOf = type => (type && ROLE[type]) ? ROLE[type] : null;
-  const roleName = type => roleOf(type) ? roleOf(type).zh : (type ? "外包：" + type : "老闆");
+  const nameOf = r => r ? (LANG === "en" ? (r.en || r.zh) : r.zh) : "";
+  const roleName = type => type === "boss" || !type ? T.boss : (roleOf(type) ? nameOf(roleOf(type)) : T.contractor(type));
+  const deptName = d => d ? (LANG === "en" ? (d.name_en || d.name) : d.name) : T.contract;
+  const CONTRACT = { name: "外包", name_en: "Contractors", color: "#9db0b8" };
   const deptOf = r => r ? (ROSTER.depts[r.dept] || CONTRACT) : CONTRACT;
   const colorOfType = type => type === "boss" ? ROSTER.depts.exec.color : deptOf(roleOf(type)).color;
 
@@ -242,11 +315,9 @@ svg.sprite { image-rendering: pixelated; display: block; }
     const key = type + "|" + size;
     if (spriteCache[key]) return spriteCache[key];
     const r = type === "boss" ? { kind: "boss" } : (roleOf(type) || { kind: "contract" });
-    const body = colorOfType(type);
     const h = hash(type || "x");
-    const C = { h: HAIRS[h % HAIRS.length], s: SKINS[(h >>> 4) % SKINS.length], e: "#1b1b1b", m: "#b5523b", d: "#2c3a46", g: "#e9efe6", b: body, a: "#c0392b", y: "#ffd34d", w: "#ffffff" };
-    const style = (h >>> 8) % 3;
-    let top = [["....hhhh....", "...hhhhhh..."], ["...hhhhhh...", "..hhhhhhhh.."], ["..h.h.h.h...", "...hhhhhh..."]][style];
+    const C = { h: HAIRS[h % HAIRS.length], s: SKINS[(h >>> 4) % SKINS.length], e: "#1b1b1b", m: "#b5523b", d: "#2c3a46", g: "#e9efe6", b: colorOfType(type), a: "#c0392b", y: "#ffd34d", w: "#ffffff" };
+    let top = [["....hhhh....", "...hhhhhh..."], ["...hhhhhh...", "..hhhhhhhh.."], ["..h.h.h.h...", "...hhhhhh..."]][(h >>> 8) % 3];
     if (r.kind === "boss") top = ["..y.y..y.y..", "..yyyyyyyy.."];
     if (r.kind === "researcher") top = ["...wwwww....", "..wwwwwwww.."];
     const eyes = r.kind === "checker" ? "..ggeggegg.." : "...sesses...";
@@ -260,23 +331,23 @@ svg.sprite { image-rendering: pixelated; display: block; }
     return (spriteCache[key] = `<svg class="sprite" viewBox="0 0 12 15" width="${size}" height="${Math.round(size * 15 / 12)}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`);
   }
 
-  // ---------- 把一個動作翻成中文 ----------
+  // ---------- 動作描述 ----------
   function describeTool(e) {
     const t = e.tool_name || "", i = e.tool_input || {};
     switch (t) {
-      case "Bash": return "執行指令：" + short(i.command, 70);
-      case "Read": return "讀檔：" + base(i.file_path);
-      case "Write": return "寫檔：" + base(i.file_path);
-      case "Edit": case "MultiEdit": return "修改：" + base(i.file_path);
-      case "NotebookEdit": return "改筆記本：" + base(i.notebook_path);
-      case "WebSearch": return "上網搜尋：" + short(i.query, 40);
-      case "WebFetch": return "讀網頁：" + host(i.url);
-      case "Agent": case "Task": return "派工給 " + roleName(i.subagent_type || "general-purpose") + "：" + short(i.description, 40);
-      case "AskUserQuestion": return "用按鈕問你問題";
-      case "TaskCreate": case "TaskUpdate": case "TodoWrite": return "更新待辦清單";
-      case "Glob": case "Grep": return "找檔案：" + short(i.pattern, 30);
-      case "Skill": return "使用技能：" + short(i.skill || i.name, 30);
-      default: return t.startsWith("mcp__") ? "使用工具：" + t.split("__").slice(-1)[0] : (t || "動作");
+      case "Bash": return T.tBash + short(i.command, 70);
+      case "Read": return T.tRead + base(i.file_path);
+      case "Write": return T.tWrite + base(i.file_path);
+      case "Edit": case "MultiEdit": return T.tEdit + base(i.file_path);
+      case "NotebookEdit": return T.tNb + base(i.notebook_path);
+      case "WebSearch": return T.tSearch + short(i.query, 40);
+      case "WebFetch": return T.tFetch + host(i.url);
+      case "Agent": case "Task": return T.tAgent(roleName(i.subagent_type || "general-purpose")) + short(i.description, 40);
+      case "AskUserQuestion": return T.tAsk;
+      case "TaskCreate": case "TaskUpdate": case "TodoWrite": return T.tTodo;
+      case "Glob": case "Grep": return T.tFind + short(i.pattern, 30);
+      case "Skill": return T.tSkill + short(i.skill || i.name, 30);
+      default: return t.startsWith("mcp__") ? T.tMcp + t.split("__").slice(-1)[0] : (t || T.tAny);
     }
   }
 
@@ -285,18 +356,17 @@ svg.sprite { image-rendering: pixelated; display: block; }
   let S = null;
   function newState() { return { rounds: [], inst: {}, pending: [], counters: { dispatch: 0, tools: 0, errors: 0 } }; }
   function curRound() {
-    if (!S.rounds.length) S.rounds.push({ idx: 1, prompt: "", start: Date.now(), end: null, keys: new Set(["main"]) });
+    if (!S.rounds.length) S.rounds.push({ idx: 1, prompt: "", start: EVENTS.length ? EVENTS[0].ts : Date.now(), end: null, keys: new Set(["main"]) });
     return S.rounds[S.rounds.length - 1];
   }
   function inst(key, type) {
     let x = S.inst[key];
-    if (!x) {
-      x = S.inst[key] = { key, type: type || (key === "main" ? "boss" : "unknown"), status: "idle", action: "", parent: null, task: "", prompt: "", report: "", thoughts: [], timeline: [], errors: 0, round: S.rounds.length || 1, start: null, end: null };
-    } else if (type && (x.type === "unknown")) x.type = type;
+    if (!x) x = S.inst[key] = { key, type: type || (key === "main" ? "boss" : "unknown"), status: "idle", action: "", parent: null, task: "", prompt: "", report: "", thoughts: [], timeline: [], errors: 0, start: null, end: null };
+    else if (type && x.type === "unknown") x.type = type;
     curRound().keys.add(key);
     return x;
   }
-  function keyOf(e) { return e.agent_id || "main"; }
+  const keyOf = e => e.agent_id || "main";
   function push(x, ts, cls, text) { x.timeline.push({ ts, cls, text }); if (x.timeline.length > 400) x.timeline.shift(); }
 
   function apply(e) {
@@ -304,9 +374,9 @@ svg.sprite { image-rendering: pixelated; display: block; }
     e._cat = "other";
     if (ev === "UserPromptSubmit" && !e.agent_id) {
       S.rounds.push({ idx: S.rounds.length + 1, prompt: e.prompt || "", start: ts, end: null, keys: new Set(["main"]) });
-      const b = inst("main", "boss"); b.status = "working"; b.action = "看你交代的事"; b.report = ""; b.round = S.rounds.length; b.start = ts;
-      push(b, ts, "", "收到：" + short(e.prompt, 80));
-      e._who = "boss"; e._what = "你交代：" + short(e.prompt, 120); e._cat = "dispatch"; return;
+      const b = inst("main", "boss"); b.status = "working"; b.action = T.reading; b.report = ""; b.start = ts;
+      push(b, ts, "", T.received + short(e.prompt, 80));
+      e._who = "boss"; e._what = T.youSaid + short(e.prompt, 120); e._cat = "dispatch"; return;
     }
     if (ev === "PreToolUse") {
       const x = inst(keyOf(e), e.agent_type); x.status = "working"; x.action = describeTool(e); if (!x.start) x.start = ts;
@@ -317,95 +387,101 @@ svg.sprite { image-rendering: pixelated; display: block; }
         S.pending.push({ parent: x.key, type: i.subagent_type || "general-purpose", desc: i.description || "", prompt: i.prompt || "", used: false });
         S.counters.dispatch++; e._cat = "dispatch";
       }
-      if (e.tool_name === "AskUserQuestion") { x.status = "waiting"; }
+      if (e.tool_name === "AskUserQuestion") x.status = "waiting";
       return;
     }
     if (ev === "SubagentStart") {
-      const x = inst(e.agent_id || ("anon-" + ts), e.agent_type); x.status = "working"; x.start = ts; x.round = S.rounds.length || 1;
+      const x = inst(e.agent_id || ("anon-" + ts), e.agent_type); x.status = "working"; x.start = ts;
       const p = S.pending.find(p => !p.used && p.type === e.agent_type) || S.pending.find(p => !p.used);
       if (p) { p.used = true; x.parent = p.parent; x.task = p.desc; x.prompt = p.prompt; }
-      x.action = x.task ? "接到任務：" + short(x.task, 40) : "上工";
-      push(x, ts, "", "上工" + (x.task ? "：" + x.task : ""));
-      e._who = x.type; e._what = "上工" + (x.parent ? "（" + roleName(S.inst[x.parent] && S.inst[x.parent].type) + " 指派）" : "") + (x.task ? "：" + short(x.task, 60) : ""); e._cat = "dispatch";
+      x.action = x.task ? T.gotTask + short(x.task, 40) : T.started;
+      push(x, ts, "", T.started + (x.task ? T.sep + x.task : ""));
+      const parentName = x.parent ? roleName(S.inst[x.parent] && S.inst[x.parent].type) : "";
+      e._who = x.type; e._what = T.started + (parentName ? T.assignedBy(parentName) : "") + (x.task ? T.sep + short(x.task, 60) : ""); e._cat = "dispatch";
       return;
     }
     if (ev === "PostToolUse") {
       const x = inst(keyOf(e), e.agent_type); if (x.status === "waiting") x.status = "working";
-      e._who = x.type; e._what = "完成：" + describeTool(e); e._cat = "tool"; return;
+      e._who = x.type; e._what = T.doneTool + describeTool(e); e._cat = "tool"; return;
     }
     if (ev === "PostToolUseFailure") {
       const x = inst(keyOf(e), e.agent_type); x.errors++; S.counters.errors++;
       const msg = typeof e.error === "string" ? e.error : JSON.stringify(e.error || e.tool_response || "");
-      push(x, ts, "er", "失敗：" + describeTool(e) + "｜" + short(msg, 80));
-      e._who = x.type; e._what = "失敗：" + describeTool(e); e._cat = "error"; return;
+      push(x, ts, "er", T.failTool + describeTool(e) + "｜" + short(msg, 80));
+      e._who = x.type; e._what = T.failTool + describeTool(e); e._cat = "error"; return;
     }
     if (ev === "SubagentStop") {
-      const x = inst(e.agent_id || "main", e.agent_type); x.status = "done"; x.end = ts; x.action = "交回成果";
+      const x = inst(e.agent_id || "main", e.agent_type); x.status = "done"; x.end = ts; x.action = T.reported;
       x.report = e.last_assistant_message || x.report;
-      push(x, ts, "", "交回成果");
-      e._who = x.type; e._what = "交回成果：" + short(x.report, 100); e._cat = "report"; return;
+      push(x, ts, "", T.reported);
+      e._who = x.type; e._what = T.reportX + short(x.report, 100); e._cat = "report"; return;
     }
     if (ev === "Thinking") {
       let k = e.agent_id || "main";
       if (!S.inst[k]) { const m = Object.keys(S.inst).find(z => z.indexOf(k) >= 0 || k.indexOf(z) >= 0); if (m) k = m; }
       const x = inst(k, null); x.thoughts.push({ ts, text: e.text || "" });
-      push(x, ts, "th", "思考：" + short(e.text, 90));
-      e._who = x.type; e._what = "思考：" + short(e.text, 120); e._cat = "think"; return;
+      push(x, ts, "th", T.thinking + short(e.text, 90));
+      e._who = x.type; e._what = T.thinking + short(e.text, 120); e._cat = "think"; return;
+    }
+    if (ev === "DispatchBlocked") {
+      const x = inst(keyOf(e), e.agent_type); S.counters.errors++;
+      const i = e.tool_input || {};
+      const p = [...S.pending].reverse().find(p => !p.used && p.type === i.subagent_type); if (p) p.used = true;
+      push(x, ts, "er", T.dispatchBlocked(e.limit));
+      e._who = x.type; e._what = T.dispatchBlocked(e.limit) + (i.subagent_type ? T.paren(roleName(i.subagent_type)) : ""); e._cat = "error"; return;
+    }
+    if (ev === "PushBlocked") {
+      const x = inst(keyOf(e), e.agent_type); S.counters.errors++;
+      push(x, ts, "er", T.pushBlocked + short(e.reason, 80));
+      e._who = x.type; e._what = T.pushBlocked + short(e.reason, 120); e._cat = "error"; return;
     }
     if (ev === "Stop") {
-      const b = inst("main", "boss"); b.status = "done"; b.action = "交付給你"; b.report = e.last_assistant_message || ""; b.end = ts;
-      curRound().end = ts; push(b, ts, "", "交付");
-      e._who = "boss"; e._what = "交付：" + short(b.report, 100); e._cat = "report"; return;
+      const b = inst("main", "boss"); b.status = "done"; b.action = T.delivered2; b.report = e.last_assistant_message || ""; b.end = ts;
+      curRound().end = ts; push(b, ts, "", T.delivered2);
+      e._who = "boss"; e._what = T.deliveredX + short(b.report, 100); e._cat = "report"; return;
     }
     if (ev === "StopFailure") {
       const b = inst("main", "boss"); b.status = "error"; b.errors++; S.counters.errors++; curRound().end = ts;
-      e._who = "boss"; e._what = "這輪因錯誤中斷"; e._cat = "error"; return;
+      e._who = "boss"; e._what = T.stopFail; e._cat = "error"; return;
     }
     if (ev === "Notification") {
       const x = inst(keyOf(e), e.agent_type); if (/permission|權限|waiting|等待/i.test(e.message || "")) x.status = "waiting";
-      e._who = x.type; e._what = "通知：" + short(e.message, 100); return;
+      e._who = x.type; e._what = T.notice + short(e.message, 100); return;
     }
-    const names = { SessionStart: "開始對話", SessionEnd: "對話結束", PreCompact: "整理對話（壓縮）", TaskCreated: "新增待辦：" + short(e.task_subject, 40), TaskCompleted: "完成待辦：" + short(e.task_subject, 40) };
-    e._who = e.agent_type || "boss"; e._what = names[ev] || ev || "事件";
+    const names = { SessionStart: T.sessStart, SessionEnd: T.sessEnd, PreCompact: T.compact,
+      TaskCreated: T.taskAdd + short(e.task_subject, 40), TaskCompleted: T.taskDone + short(e.task_subject, 40) };
+    e._who = e.agent_type || "boss"; e._what = names[ev] || ev || "event";
   }
-
   function rebuild() { S = newState(); EVENTS.forEach(apply); }
 
   // ---------- 畫面 ----------
-  let selRound = null; // null = 最新
-  let view = "office";
-  let logFilter = "all";
-  let openKey = null;
-
-  function roundShown() { return selRound == null ? S.rounds[S.rounds.length - 1] : S.rounds[selRound - 1]; }
+  let selRound = null, view = "office", logFilter = "all", openKey = null;
+  const roundShown = () => selRound == null ? S.rounds[S.rounds.length - 1] : S.rounds[selRound - 1];
+  const lastTs = () => EVENTS.length ? EVENTS[EVENTS.length - 1].ts : 0;
 
   function statusOfType(type, round) {
-    const keys = [...(round ? round.keys : [])].filter(k => S.inst[k] && S.inst[k].type === type);
-    const xs = keys.map(k => S.inst[k]);
+    const xs = [...(round ? round.keys : [])].filter(k => S.inst[k] && S.inst[k].type === type).map(k => S.inst[k]);
     if (!xs.length) return { st: "idle", xs };
-    const pri = ["error", "waiting", "working", "done"];
-    let st = "done";
-    for (const p of pri) if (xs.some(x => x.status === p)) { st = p; break; }
-    return { st, xs };
+    for (const p of ["error", "waiting", "working", "done"]) if (xs.some(x => x.status === p)) return { st: p, xs };
+    return { st: "done", xs };
   }
 
   function renderStats() {
     const r = roundShown();
-    const dur = r ? Math.max(0, Math.round(((r.end || (isLive() ? Date.now() : (lastTs() || Date.now()))) - r.start) / 1000)) : 0;
-    const keys = r ? [...r.keys].filter(k => k !== "main") : [];
+    const dur = r ? Math.max(0, Math.round(((r.end || (liveOn ? Date.now() : (lastTs() || Date.now()))) - r.start) / 1000)) : 0;
+    const n = r ? [...r.keys].filter(k => k !== "main").length : 0;
+    const dtxt = dur >= 60 ? Math.floor(dur / 60) + T.min + (dur % 60) + T.sec : dur + T.sec;
     $("#stats").innerHTML =
-      `<span class="stat">這輪出動<b>${keys.length}</b>人</span>` +
-      `<span class="stat">派工<b>${S.counters.dispatch}</b></span>` +
-      `<span class="stat">動作<b>${S.counters.tools}</b></span>` +
-      `<span class="stat ${S.counters.errors ? "bad" : ""}">錯誤<b>${S.counters.errors}</b></span>` +
-      `<span class="stat">耗時<b>${dur >= 60 ? Math.floor(dur / 60) + "分" + (dur % 60) + "秒" : dur + "秒"}</b></span>`;
+      `<span class="stat">${T.sActive}<b>${n}</b>${T.sPeople}</span>` +
+      `<span class="stat">${T.sDispatch}<b>${S.counters.dispatch}</b></span>` +
+      `<span class="stat">${T.sTools}<b>${S.counters.tools}</b></span>` +
+      `<span class="stat ${S.counters.errors ? "bad" : ""}">${T.sErrors}<b>${S.counters.errors}</b></span>` +
+      `<span class="stat">${T.sTime}<b>${dtxt}</b></span>`;
   }
-  function lastTs() { return EVENTS.length ? EVENTS[EVENTS.length - 1].ts : 0; }
 
   function tileHTML(type, round) {
     const { st, xs } = statusOfType(type, round);
-    const r = type === "boss" ? ROLE.boss : roleOf(type);
-    const name = r ? r.zh : roleName(type);
+    const name = roleName(type);
     const live = xs.filter(x => x.status === "working" || x.status === "waiting");
     const act = (live[0] || xs[xs.length - 1] || {}).action || "";
     let badge = "";
@@ -413,15 +489,14 @@ svg.sprite { image-rendering: pixelated; display: block; }
     else if (st === "done") badge = `<span class="badge">✓</span>`;
     if (st === "error") badge = `<span class="badge err">!</span>`;
     if (st === "waiting") badge = `<span class="badge wait">?</span>`;
-    return `<button class="tile ${st}" style="--c:${colorOfType(type)}" data-type="${esc(type)}" aria-label="${esc(name)}：${esc({ idle: "閒置", working: "工作中", waiting: "等待中", done: "完成", error: "出錯" }[st])}">${badge}${sprite(type, 36)}<span class="nm">${esc(name)}</span><span class="act">${esc(act)}</span></button>`;
+    return `<button class="tile ${st}" style="--c:${colorOfType(type)}" data-type="${esc(type)}" aria-label="${esc(name)}: ${esc(T.st[st] || st)}">${badge}${sprite(type, 36)}<span class="nm">${esc(name)}</span><span class="act">${esc(act)}</span></button>`;
   }
 
   function renderOffice() {
     const r = roundShown();
-    $("#promptTxt").textContent = r && r.prompt ? r.prompt : "還沒有收到任何指令。";
-    const rs = $("#roundSel");
-    rs.innerHTML = S.rounds.map(x => `<option value="${x.idx}">第 ${x.idx} 輪：${esc(short(x.prompt, 24) || "（無內容）")}</option>`).reverse().join("") || `<option>尚無</option>`;
-    rs.value = r ? String(r.idx) : "";
+    $("#promptTxt").textContent = r && r.prompt ? r.prompt : T.noPrompt;
+    $("#roundSel").innerHTML = S.rounds.map(x => `<option value="${x.idx}">${T.round(x.idx)}${esc(short(x.prompt, 24) || T.empty)}</option>`).reverse().join("") || `<option>${T.none}</option>`;
+    if (r) $("#roundSel").value = String(r.idx);
     const only = $("#onlyActive").checked;
     const usedTypes = new Set([...(r ? r.keys : [])].map(k => S.inst[k] && S.inst[k].type).filter(Boolean));
     let html = "";
@@ -432,32 +507,28 @@ svg.sprite { image-rendering: pixelated; display: block; }
       if (!members.length) continue;
       const working = members.filter(m => ["working", "waiting"].includes(statusOfType(m.slug, r).st)).length;
       const groups = {};
-      members.forEach(m => { const g = m.team || ""; (groups[g] = groups[g] || []).push(m); });
+      members.forEach(m => { const g = m.team || ""; (groups[g] = groups[g] || { label: LANG === "en" ? (m.team_en || m.team) : m.team, items: [] }).items.push(m); });
       let inner = "";
       Object.keys(groups).sort((a, b) => (a === "" ? -1 : b === "" ? 1 : 0)).forEach(g => {
-        if (g) inner += `<div class="team-label">${esc(g)}</div>`;
-        inner += `<div class="tiles">${groups[g].map(m => tileHTML(m.slug, r)).join("")}</div>`;
+        if (g) inner += `<div class="team-label">${esc(groups[g].label)}</div>`;
+        inner += `<div class="tiles">${groups[g].items.map(m => tileHTML(m.slug, r)).join("")}</div>`;
       });
-      html += `<section class="room ${d === "exec" ? "exec" : ""}" style="--c:${dep.color}"><div class="room-head"><h2>${esc(dep.name)}</h2><span>${working ? working + " 人工作中" : members.length + " 人"}</span></div>${inner}</section>`;
+      html += `<section class="room ${d === "exec" ? "exec" : ""}" style="--c:${dep.color}"><div class="room-head"><h2>${esc(deptName(dep))}</h2><span>${working ? T.working(working) : T.people(members.length)}</span></div>${inner}</section>`;
     }
     const contractors = [...usedTypes].filter(t => t !== "boss" && !ROLE[t]);
-    if (contractors.length) {
-      html += `<section class="room" style="--c:${CONTRACT.color}"><div class="room-head"><h2>外包</h2><span>不在組織表裡的 agent</span></div><div class="tiles">${contractors.map(t => tileHTML(t, r)).join("")}</div></section>`;
-    }
+    if (contractors.length) html += `<section class="room" style="--c:${CONTRACT.color}"><div class="room-head"><h2>${T.contract}</h2><span>${T.contractSub}</span></div><div class="tiles">${contractors.map(t => tileHTML(t, r)).join("")}</div></section>`;
     $("#rooms").innerHTML = html;
   }
 
   function renderTree() {
     const r = roundShown();
-    if (!r) { $("#tree").innerHTML = `<p class="notice">這一輪還沒有派工。</p>`; return; }
-    const keys = [...r.keys].filter(k => S.inst[k]);
+    if (!r) { $("#tree").innerHTML = `<p class="notice">${T.noTree}</p>`; return; }
     const kids = {};
-    keys.forEach(k => { const p = S.inst[k].parent || (k === "main" ? null : "main"); if (p) (kids[p] = kids[p] || []).push(k); });
-    const label = { idle: "閒置", working: "工作中", waiting: "等你回覆", done: "完成", error: "出錯" };
+    [...r.keys].filter(k => S.inst[k]).forEach(k => { const p = S.inst[k].parent || (k === "main" ? null : "main"); if (p) (kids[p] = kids[p] || []).push(k); });
     function node(k, depth) {
       const x = S.inst[k]; if (!x || depth > 8) return "";
       const ch = (kids[k] || []).sort((a, b) => (S.inst[a].start || 0) - (S.inst[b].start || 0));
-      return `<li><button class="node" style="--c:${colorOfType(x.type)}" data-key="${esc(k)}">${sprite(x.type, 22)}<span class="t"><b>${esc(roleName(x.type))} <span class="st ${x.status}">${label[x.status] || x.status}</span></b><span>${esc(short(x.task || x.action, 60))}</span></span></button>${ch.length ? `<ul>${ch.map(c => node(c, depth + 1)).join("")}</ul>` : ""}</li>`;
+      return `<li><button class="node" style="--c:${colorOfType(x.type)}" data-key="${esc(k)}">${sprite(x.type, 22)}<span class="t"><b>${esc(roleName(x.type))} <span class="st ${x.status}">${T.st[x.status] || x.status}</span></b><span>${esc(short(x.task || x.action, 60))}</span></span></button>${ch.length ? `<ul>${ch.map(c => node(c, depth + 1)).join("")}</ul>` : ""}</li>`;
     }
     $("#tree").innerHTML = `<ul>${node("main", 0)}</ul>`;
   }
@@ -468,39 +539,37 @@ svg.sprite { image-rendering: pixelated; display: block; }
     for (let i = EVENTS.length - 1; i >= 0 && rows.length < 400; i--) {
       const e = EVENTS[i];
       if (logFilter !== "all" && e._cat !== logFilter) continue;
-      const who = e._who === "boss" ? "老闆" : roleName(e._who);
-      const hay = (who + " " + (e._what || "") + " " + JSON.stringify(e.tool_input || "")).toLowerCase();
-      if (q && hay.indexOf(q) < 0) continue;
+      const who = roleName(e._who === "boss" ? "boss" : e._who);
+      if (q && (who + " " + (e._what || "") + " " + JSON.stringify(e.tool_input || "")).toLowerCase().indexOf(q) < 0) continue;
       const detail = Object.assign({}, e); Object.keys(detail).forEach(k => { if (k[0] === "_") delete detail[k]; });
       rows.push(`<details class="ev ${e._cat === "error" ? "err" : ""}" style="--c:${colorOfType(e._who || "boss")}"><summary><time>${hhmmss(e.ts)}</time>${sprite(e._who || "boss", 20)}<span class="what"><b>${esc(who)}</b>${esc(e._what || e.hook_event_name)}</span></summary><pre>${esc(JSON.stringify(detail, null, 2))}</pre></details>`);
     }
-    $("#log").innerHTML = rows.join("") || `<p class="notice">沒有符合的紀錄。</p>`;
+    $("#log").innerHTML = rows.join("") || `<p class="notice">${T.noLog}</p>`;
   }
 
   function openSheet(type, key) {
     openKey = { type, key };
     const r = roundShown();
-    let xs;
-    if (key) xs = [S.inst[key]].filter(Boolean);
-    else xs = statusOfType(type, r).xs;
+    const xs = key ? [S.inst[key]].filter(Boolean) : statusOfType(type, r).xs;
     if (!type && xs[0]) type = xs[0].type;
     const role = type === "boss" ? ROLE.boss : roleOf(type);
     const dep = type === "boss" ? ROSTER.depts.exec : deptOf(role);
-    const label = { idle: "閒置", working: "工作中", waiting: "等你回覆", done: "完成", error: "出錯" };
-    let body = `<div class="box"><h4>職責</h4><p>${esc(role ? role.job : "不在組織表裡的 agent（例如內建的 Explore、general-purpose）。")}</p></div>`;
-    if (!xs.length) body += `<div class="box"><p>這一輪沒有出動。</p></div>`;
+    const job = role ? (LANG === "en" ? (role.job_en || role.job) : role.job) : T.notInRoster;
+    let body = `<div class="box"><h4>${T.job}</h4><p>${esc(job)}</p></div>`;
+    if (!xs.length) body += `<div class="box"><p>${T.notActive}</p></div>`;
     xs.forEach((x, n) => {
-      const parent = x.parent ? roleName(S.inst[x.parent] && S.inst[x.parent].type) : (x.key === "main" ? "" : "老闆");
-      body += `<div class="inst">${xs.length > 1 ? `<b>第 ${n + 1} 位</b>` : ""}
-        <div class="box"><h4>狀態</h4><p><span class="st ${x.status}">${label[x.status] || x.status}</span>${parent ? "　由 " + esc(parent) + " 指派" : ""}${x.errors ? "　錯誤 " + x.errors + " 次" : ""}</p></div>
-        ${x.task || x.prompt ? `<div class="box"><h4>接到的任務</h4><p>${esc(x.task)}${x.prompt ? "\n\n" + esc(short(x.prompt, 1200)) : ""}</p></div>` : ""}
-        ${x.thoughts.length ? `<div class="box"><h4>思考摘要（${x.thoughts.length}）</h4><p>${esc(x.thoughts.slice(-3).map(t => t.text).join("\n\n"))}</p></div>` : ""}
-        <div class="box"><h4>動作紀錄</h4><div class="timeline">${x.timeline.slice(-80).map(t => `<div><time>${hhmmss(t.ts)}</time><span class="${t.cls}">${esc(t.text)}</span></div>`).join("") || "尚無"}</div></div>
-        ${x.report ? `<div class="box"><h4>${x.key === "main" ? "交付給你的內容" : "交回的成果"}</h4><p>${esc(short(x.report, 4000))}</p></div>` : ""}
+      const parent = x.parent ? roleName(S.inst[x.parent] && S.inst[x.parent].type) : (x.key === "main" ? "" : T.boss);
+      body += `<div class="inst">${xs.length > 1 ? `<b>${T.nth(n + 1)}</b>` : ""}
+        <div class="box"><h4>${T.status}</h4><p><span class="st ${x.status}">${T.st[x.status] || x.status}</span>${parent ? "　" + esc(T.by(parent)) : ""}${x.errors ? "　" + T.errs(x.errors) : ""}</p></div>
+        ${x.task || x.prompt ? `<div class="box"><h4>${T.task}</h4><p>${esc(x.task)}${x.prompt && x.prompt !== x.task ? "\n\n" + esc(short(x.prompt, 1200)) : ""}</p></div>` : ""}
+        ${x.thoughts.length ? `<div class="box"><h4>${T.thoughts(x.thoughts.length)}</h4><p>${esc(x.thoughts.slice(-3).map(t => t.text).join("\n\n"))}</p></div>` : ""}
+        <div class="box"><h4>${T.timeline}</h4><div class="timeline">${x.timeline.slice(-80).map(t => `<div><time>${hhmmss(t.ts)}</time><span class="${t.cls}">${esc(t.text)}</span></div>`).join("") || T.none}</div></div>
+        ${x.report ? `<div class="box"><h4>${x.key === "main" ? T.delivered : T.report}</h4><p>${esc(short(x.report, 4000))}</p></div>` : ""}
       </div>`;
     });
+    const sub = deptName(dep) + (role && role.team ? "・" + (LANG === "en" ? (role.team_en || role.team) : role.team) : "");
     $("#sheetRoot").innerHTML = `<div class="scrim" data-close="1"></div><aside class="sheet" role="dialog" aria-modal="true" aria-label="${esc(roleName(type))}" style="--c:${dep.color}">
-      <div class="sheet-head">${sprite(type, 44)}<div><h3>${esc(type === "boss" ? "老闆" : roleName(type))}</h3><small>${esc(dep.name)}${role && role.team ? "・" + esc(role.team) : ""}</small></div><button class="close" data-close="1">關閉</button></div>${body}</aside>`;
+      <div class="sheet-head">${sprite(type, 44)}<div><h3>${esc(roleName(type))}</h3><small>${esc(sub)}</small></div><button class="close" data-close="1">${T.close}</button></div>${body}</aside>`;
   }
   function closeSheet() { openKey = null; $("#sheetRoot").innerHTML = ""; }
 
@@ -518,8 +587,12 @@ svg.sprite { image-rendering: pixelated; display: block; }
 
   // ---------- 互動 ----------
   document.addEventListener("click", ev => {
-    const t = ev.target.closest("[data-view],.tile,.node,.chip,[data-close]");
+    const t = ev.target.closest("[data-view],.tile,.node,.chip,[data-close],#langBtn");
     if (!t) return;
+    if (t.id === "langBtn") {
+      LANG = LANG === "zh" ? "en" : "zh"; T = I18N[LANG]; store("office_lang", LANG);
+      applyStatic(); refreshChrome(); rebuild(); render(); return;
+    }
     if (t.dataset.close) return closeSheet();
     if (t.dataset.view) {
       view = t.dataset.view;
@@ -541,10 +614,10 @@ svg.sprite { image-rendering: pixelated; display: block; }
   $("#logSearch").addEventListener("input", renderLog);
 
   // ---------- 資料來源 ----------
-  let SESSIONS = [], SESSION = null, SINCE = 0, liveOn = false;
-  function isLive() { return liveOn; }
-  function setLive(on, txt) { liveOn = on; $("#live").classList.toggle("on", on); $("#liveTxt").textContent = txt; }
-  function notice(html) { const n = $("#notice"); n.hidden = !html; n.innerHTML = html || ""; }
+  let SESSIONS = [], SESSION = null, SINCE = 0, liveOn = false, liveKey = "connecting", noticeKey = "", noticeExtra = "";
+  function setLive(on, key) { liveOn = on; liveKey = key; $("#live").classList.toggle("on", on); $("#liveTxt").textContent = T[key]; }
+  function notice(key, extra) { noticeKey = key || ""; noticeExtra = extra || ""; const n = $("#notice"); n.hidden = !key; n.innerHTML = key ? T[key] + esc(noticeExtra) : ""; }
+  function refreshChrome() { setLive(liveOn, liveKey); notice(noticeKey, noticeExtra); if (DEMO) $("#sessionSel").innerHTML = `<option>${T.demoSession}</option>`; else fillSessions(); }
 
   async function api(path) {
     const res = await fetch(path, { credentials: "same-origin", cache: "no-store" });
@@ -553,145 +626,151 @@ svg.sprite { image-rendering: pixelated; display: block; }
     return res.json();
   }
   function fillSessions() {
-    $("#sessionSel").innerHTML = SESSIONS.map(s => `<option value="${esc(s.session)}">${esc(new Date(s.last_ts).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }))}　${esc(short(s.title || "（還沒有指令）", 30))}</option>`).join("");
+    const loc = LANG === "en" ? "en-US" : "zh-TW";
+    $("#sessionSel").innerHTML = SESSIONS.map(s => `<option value="${esc(s.session)}">${esc(new Date(s.last_ts).toLocaleString(loc, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }))}　${esc(short(s.title || T.empty, 30))}</option>`).join("");
     if (SESSION) $("#sessionSel").value = SESSION;
   }
   async function loadSessions() {
     SESSIONS = await api("/api/sessions");
     if (!SESSION && SESSIONS.length) SESSION = SESSIONS[0].session;
     fillSessions();
-    if (!SESSIONS.length) notice("<b>還沒有收到任何事件。</b>在 Claude App 的 Code 開一個 ai-office 的雲端對話、交代一件事，這裡就會開始動。");
-    else notice("");
+    notice(SESSIONS.length ? "" : "noEvents");
   }
   async function poll() {
     if (!SESSION) return;
     const batch = await api(`/api/events?session=${encodeURIComponent(SESSION)}&since=${SINCE}`);
-    if (batch.length) {
-      batch.forEach(e => { EVENTS.push(e); SINCE = Math.max(SINCE, e.id || 0); apply(e); });
-      render();
-    } else renderStats();
+    if (batch.length) { batch.forEach(e => { EVENTS.push(e); SINCE = Math.max(SINCE, e.id || 0); apply(e); }); render(); }
+    else renderStats();
     const s = SESSIONS.find(x => x.session === SESSION);
     const recent = Date.now() - lastTs() < 120000;
-    setLive(recent && !(s && s.ended), recent ? "即時" : "已停止");
+    setLive(recent && !(s && s.ended), recent ? "live" : "stopped");
   }
   $("#sessionSel").addEventListener("change", e => { SESSION = e.target.value; SINCE = 0; EVENTS = []; selRound = null; rebuild(); render(); poll().catch(() => {}); });
 
+  // 有動才問得快、沒動就放慢、畫面看不到就停（省 Cloudflare 免費額度）
+  let pollTimer = null, sessTimer = null;
+  function schedulePoll() {
+    clearTimeout(pollTimer);
+    if (document.hidden) return;
+    const busy = Date.now() - lastTs() < 60000;
+    pollTimer = setTimeout(() => poll().catch(() => setLive(false, "dropped")).finally(schedulePoll), busy ? 1500 : 6000);
+  }
+  function scheduleSessions() {
+    clearTimeout(sessTimer);
+    if (document.hidden) return;
+    sessTimer = setTimeout(() => loadSessions().catch(() => {}).finally(scheduleSessions), 30000);
+  }
   async function startLive() {
-    rebuild(); render();
-    try { await loadSessions(); await poll(); } catch (e) { setLive(false, "連不上後台"); notice("<b>連不上監控後台。</b>" + esc(e.message)); }
-    setInterval(() => { if (!document.hidden) poll().catch(() => setLive(false, "連線中斷")); }, 1500);
-    setInterval(() => { if (!document.hidden) loadSessions().catch(() => {}); }, 15000);
+    rebuild(); render(); setLive(false, "connecting");
+    try { await loadSessions(); await poll(); } catch (e) { setLive(false, "noBackend"); notice("backendErr", e.message); }
+    schedulePoll(); scheduleSessions();
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) { clearTimeout(pollTimer); clearTimeout(sessTimer); }
+      else { poll().catch(() => {}).finally(schedulePoll); scheduleSessions(); }
+    });
   }
 
   // ---------- 示範模式 ----------
   function demoScript() {
-    const L = [];
-    let t = Date.now();
-    const id = { };
-    let n = 0;
-    const A = (type) => (id[type + (n)] = "a" + (++n).toString(16) + type.slice(0, 3));
-    const E = (dt, ev) => { t += dt; ev.ts = t; ev.session_id = "demo"; L.push(ev); return ev; };
-    const prompt = "幫我做一個自動販賣機的庫存預測功能：要有 API、預測模型和一個管理後台頁面。";
-    E(0, { hook_event_name: "UserPromptSubmit", prompt });
-    E(700, { hook_event_name: "Thinking", text: "這是跨部門的大工作：需求要先確認（預測多久、資料從哪來），再排計畫，研發和 AI 部可以同時做。" });
-    function spawn(parentId, type, desc, dt) {
-      E(dt, { hook_event_name: "PreToolUse", agent_id: parentId, agent_type: parentId ? null : undefined, tool_name: "Agent", tool_input: { subagent_type: type, description: desc, prompt: desc } });
-      const a = A(type);
+    const L = (zh, en) => LANG === "en" ? en : zh;
+    const out = []; let t = Date.now(); let n = 0;
+    const E = (dt, ev) => { t += dt; ev.ts = t; ev.session_id = "demo"; out.push(ev); return ev; };
+    const spawn = (parentId, type, desc, dt) => {
+      E(dt, { hook_event_name: "PreToolUse", agent_id: parentId || undefined, tool_name: "Agent", tool_input: { subagent_type: type, description: desc, prompt: desc } });
+      const a = "a" + (++n).toString(16) + type.slice(0, 3);
       E(200, { hook_event_name: "SubagentStart", agent_id: a, agent_type: type });
       return a;
-    }
-    function tool(a, type, name, input, dt, fail) {
+    };
+    const tool = (a, type, name, input, dt, fail) => {
       E(dt, { hook_event_name: "PreToolUse", agent_id: a, agent_type: type, tool_name: name, tool_input: input });
       E(500, { hook_event_name: fail ? "PostToolUseFailure" : "PostToolUse", agent_id: a, agent_type: type, tool_name: name, tool_input: input, error: fail || undefined });
-    }
-    function stop(a, type, msg, dt) { E(dt, { hook_event_name: "SubagentStop", agent_id: a, agent_type: type, last_assistant_message: msg }); }
-    const pd = spawn(null, "product-director", "釐清庫存預測需求", 600);
-    const ra = spawn(pd, "requirements-analyst", "找出需要問使用者的地方", 600);
+    };
+    const stop = (a, type, msg, dt) => E(dt, { hook_event_name: "SubagentStop", agent_id: a, agent_type: type, last_assistant_message: msg });
+    E(0, { hook_event_name: "UserPromptSubmit", prompt: L("幫我做一個自動販賣機的庫存預測功能：要有 API、預測模型和一個管理後台頁面。", "Build an inventory forecast feature for our vending machines: an API, a forecasting model and an admin page.") });
+    E(700, { hook_event_name: "Thinking", text: L("這是跨部門的大工作：需求要先確認（預測多久、資料從哪來），再排計畫，研發和 AI 部可以同時做。", "This is a cross-department job: confirm the requirements first (horizon, data source), then plan; Engineering and AI can work in parallel.") });
+    const pd = spawn(null, "product-director", L("釐清庫存預測需求", "Clarify forecast requirements"), 600);
+    const ra = spawn(pd, "requirements-analyst", L("找出需要問使用者的地方", "Find what to ask the user"), 600);
     tool(ra, "requirements-analyst", "Read", { file_path: "docs/vending/schema.sql" }, 500);
-    E(400, { hook_event_name: "Thinking", agent_id: ra, text: "預測天數和補貨週期不同，模型和 API 的設計會完全不同，這題一定要問。" });
-    stop(ra, "requirements-analyst", "要問的問題：1. 預測多久以後的庫存？（7 天（建議）／30 天）2. 歷史銷售資料有幾個月？", 700);
-    stop(pd, "product-director", "範圍：以單台機器、單一商品為單位預測 7 天銷量；不含自動下單。", 500);
+    E(400, { hook_event_name: "Thinking", agent_id: ra, text: L("預測天數和補貨週期不同，模型和 API 的設計會完全不同，這題一定要問。", "Forecast horizon changes both the model and the API design, so this has to be asked.") });
+    stop(ra, "requirements-analyst", L("要問的問題：1. 預測多久以後的庫存？（7 天（建議）／30 天）2. 歷史銷售資料有幾個月？", "Questions: 1. Forecast horizon? (7 days (recommended) / 30 days) 2. How many months of sales history?"), 700);
+    stop(pd, "product-director", L("範圍：以單台機器、單一商品為單位預測 7 天銷量；不含自動下單。", "Scope: 7-day sales forecast per machine and product; no auto-ordering."), 500);
     E(400, { hook_event_name: "PreToolUse", tool_name: "AskUserQuestion", tool_input: { questions: [] } });
     E(1500, { hook_event_name: "PostToolUse", tool_name: "AskUserQuestion", tool_input: {} });
-    const pm = spawn(null, "project-manager", "排計畫", 500);
+    const pm = spawn(null, "project-manager", L("排計畫", "Plan the work"), 500);
     tool(pm, "project-manager", "Write", { file_path: "plan/inventory-forecast.md" }, 700);
-    stop(pm, "project-manager", "計畫：1. 架構師訂介面 → 2. 研發部與 AI 部同時做 → 3. 品保檢查。", 400);
-    const cto = spawn(null, "cto", "做 API 和管理後台", 500);
-    const cao = spawn(null, "chief-ai-officer", "做 7 天銷量預測模型", 100);
-    const arch = spawn(cto, "chief-architect", "訂預測服務的介面", 500);
+    stop(pm, "project-manager", L("計畫：1. 架構師訂介面 → 2. 研發部與 AI 部同時做 → 3. 品保檢查。", "Plan: 1. architect defines the interface → 2. Engineering and AI in parallel → 3. QA."), 400);
+    const cto = spawn(null, "cto", L("做 API 和管理後台", "Build the API and admin page"), 500);
+    const cao = spawn(null, "chief-ai-officer", L("做 7 天銷量預測模型", "Build the 7-day forecast model"), 100);
+    const arch = spawn(cto, "chief-architect", L("訂預測服務的介面", "Define the forecast interface"), 500);
     tool(arch, "chief-architect", "Write", { file_path: "docs/forecast-api.md" }, 600);
-    stop(arch, "chief-architect", "介面：GET /machines/{id}/forecast?days=7，回傳每個商品的預測銷量與信賴區間。", 400);
-    const ml = spawn(cao, "ml-lead", "建立預測流程", 300);
-    const be = spawn(cto, "backend-lead", "實作 forecast API", 300);
-    const fe = spawn(cto, "frontend-lead", "做管理後台頁面", 100);
-    const de = spawn(ml, "data-engineer", "整理銷售資料", 300);
-    const api = spawn(be, "api-engineer", "寫 forecast API", 200);
-    const db = spawn(be, "database-engineer", "新增預測結果資料表", 100);
-    const web = spawn(fe, "web-engineer", "做庫存預測頁", 100);
+    stop(arch, "chief-architect", L("介面：GET /machines/{id}/forecast?days=7，回傳每個商品的預測銷量與信賴區間。", "Interface: GET /machines/{id}/forecast?days=7 returns per-product forecasts with intervals."), 400);
+    const ml = spawn(cao, "ml-lead", L("建立預測流程", "Set up the forecasting pipeline"), 300);
+    const be = spawn(cto, "backend-lead", L("實作 forecast API", "Implement the forecast API"), 300);
+    const fe = spawn(cto, "frontend-lead", L("做管理後台頁面", "Build the admin page"), 100);
+    const de = spawn(ml, "data-engineer", L("整理銷售資料", "Prepare sales data"), 300);
+    const api2 = spawn(be, "api-engineer", L("寫 forecast API", "Write the forecast API"), 200);
+    const db = spawn(be, "database-engineer", L("新增預測結果資料表", "Add a forecast results table"), 100);
+    const web = spawn(fe, "web-engineer", L("做庫存預測頁", "Build the forecast page"), 100);
     tool(de, "data-engineer", "Bash", { command: "python etl/sales_daily.py --months 18" }, 500);
     tool(db, "database-engineer", "Write", { file_path: "migrations/20261117_add_forecast.sql" }, 300);
-    tool(api, "api-engineer", "Edit", { file_path: "src/routes/forecast.ts" }, 300);
+    tool(api2, "api-engineer", "Edit", { file_path: "src/routes/forecast.ts" }, 300);
     tool(web, "web-engineer", "Write", { file_path: "web/pages/forecast.vue" }, 300);
-    E(300, { hook_event_name: "Thinking", agent_id: de, text: "有 3 台機器在 6 月有缺資料的區段，先標記，不要補 0，不然模型會以為那幾天沒人買。" });
-    const me = spawn(ml, "model-engineer", "訓練基準模型與 LightGBM", 400);
+    E(300, { hook_event_name: "Thinking", agent_id: de, text: L("有 3 台機器在 6 月有缺資料的區段，先標記，不要補 0，不然模型會以為那幾天沒人買。", "Three machines have gaps in June; flag them instead of filling zeros, or the model will think nobody bought anything.") });
+    const me = spawn(ml, "model-engineer", L("訓練基準模型與 LightGBM", "Train a baseline and LightGBM"), 400);
     tool(me, "model-engineer", "Bash", { command: "python train.py --model baseline,lgbm" }, 600);
-    tool(api, "api-engineer", "Bash", { command: "npm test -- forecast" }, 500, "1 個測試失敗：days 超過 30 沒有回 400");
-    tool(api, "api-engineer", "Edit", { file_path: "src/routes/forecast.ts" }, 600);
-    stop(db, "database-engineer", "新增 forecast_results 表，附回滾 SQL。", 300);
-    stop(de, "data-engineer", "清好 18 個月日銷量，缺資料區段已標記。", 200);
-    const ev = spawn(ml, "model-evaluator", "評估模型", 300);
-    tool(ev, "model-evaluator", "Bash", { command: "python eval.py --split time" }, 700);
-    stop(me, "model-engineer", "LightGBM 的 MAPE 18.4%，基準模型 27.9%。", 300);
-    stop(ev, "model-evaluator", "飲料類誤差最低，零食類在假日偏高，建議加入假日特徵。", 400);
-    stop(api, "api-engineer", "forecast API 完成，測試全部通過。", 300);
-    stop(web, "web-engineer", "庫存預測頁完成，手機和電腦都檢查過。", 300);
-    stop(ml, "ml-lead", "模型與評估完成。", 300);
-    stop(be, "backend-lead", "API 與資料表完成。", 200);
-    stop(fe, "frontend-lead", "管理後台頁完成。", 200);
-    stop(cao, "chief-ai-officer", "預測模型可上線，附評估報告。", 300);
-    stop(cto, "cto", "API 和後台完成，介面與 AI 部對上。", 200);
-    const qa = spawn(null, "qa-manager", "檢查全部成果", 500);
-    const rv = spawn(qa, "reviewer", "逐行審查程式", 300);
-    const rt = spawn(qa, "red-team", "找盲點", 100);
-    const te = spawn(qa, "test-engineer", "補邊界測試", 100);
+    tool(api2, "api-engineer", "Bash", { command: "npm test -- forecast" }, 500, L("1 個測試失敗：days 超過 30 沒有回 400", "1 test failed: days > 30 did not return 400"));
+    tool(api2, "api-engineer", "Edit", { file_path: "src/routes/forecast.ts" }, 600);
+    stop(db, "database-engineer", L("新增 forecast_results 表，附回滾 SQL。", "Added forecast_results with rollback SQL."), 300);
+    stop(de, "data-engineer", L("清好 18 個月日銷量，缺資料區段已標記。", "Cleaned 18 months of daily sales; gaps flagged."), 200);
+    const ev2 = spawn(ml, "model-evaluator", L("評估模型", "Evaluate the model"), 300);
+    tool(ev2, "model-evaluator", "Bash", { command: "python eval.py --split time" }, 700);
+    stop(me, "model-engineer", L("LightGBM 的 MAPE 18.4%，基準模型 27.9%。", "LightGBM MAPE 18.4% vs baseline 27.9%."), 300);
+    stop(ev2, "model-evaluator", L("飲料類誤差最低，零食類在假日偏高，建議加入假日特徵。", "Drinks are most accurate; snacks drift on holidays, so add holiday features."), 400);
+    stop(api2, "api-engineer", L("forecast API 完成，測試全部通過。", "Forecast API done, all tests pass."), 300);
+    stop(web, "web-engineer", L("庫存預測頁完成，手機和電腦都檢查過。", "Forecast page done, checked on phone and desktop."), 300);
+    stop(ml, "ml-lead", L("模型與評估完成。", "Model and evaluation done."), 300);
+    stop(be, "backend-lead", L("API 與資料表完成。", "API and table done."), 200);
+    stop(fe, "frontend-lead", L("管理後台頁完成。", "Admin page done."), 200);
+    stop(cao, "chief-ai-officer", L("預測模型可上線，附評估報告。", "Model ready to ship, evaluation attached."), 300);
+    stop(cto, "cto", L("API 和後台完成，介面與 AI 部對上。", "API and admin done; interface matches AI."), 200);
+    const qa = spawn(null, "qa-manager", L("檢查全部成果", "Check everything"), 500);
+    const rv = spawn(qa, "reviewer", L("逐行審查程式", "Review the code line by line"), 300);
+    const rt = spawn(qa, "red-team", L("找盲點", "Look for blind spots"), 100);
+    const te = spawn(qa, "test-engineer", L("補邊界測試", "Add edge-case tests"), 100);
     tool(rv, "reviewer", "Read", { file_path: "src/routes/forecast.ts" }, 400);
     tool(te, "test-engineer", "Bash", { command: "npm test" }, 500);
-    E(300, { hook_event_name: "Thinking", agent_id: rt, text: "如果某台機器剛換位置，過去的銷量就不能代表未來，預測會整個偏掉。" });
-    stop(rt, "red-team", "最大盲點：機器搬遷或新商品上架時沒有歷史資料。", 500);
-    stop(rv, "reviewer", "【建議】forecast.ts 第 42 行可以快取。沒有必改。", 300);
-    stop(te, "test-engineer", "新增 6 個邊界測試，全部通過。", 300);
-    stop(qa, "qa-manager", "可以交付。附 1 項建議、1 個盲點。", 300);
-    const pm2 = spawn(null, "project-manager", "寫結案報告", 400);
-    stop(pm2, "project-manager", "結案報告完成。", 600);
-    E(500, { hook_event_name: "Stop", last_assistant_message: "庫存預測功能完成：API、7 天預測模型（MAPE 18.4%）、管理後台頁。紅隊提醒：機器搬遷後的預測要另外處理。" });
-    return L;
+    E(300, { hook_event_name: "Thinking", agent_id: rt, text: L("如果某台機器剛換位置，過去的銷量就不能代表未來，預測會整個偏掉。", "If a machine was just moved, its past sales no longer predict the future.") });
+    stop(rt, "red-team", L("最大盲點：機器搬遷或新商品上架時沒有歷史資料。", "Biggest blind spot: relocated machines and new products have no history."), 500);
+    stop(rv, "reviewer", L("【建議】forecast.ts 第 42 行可以快取。沒有必改。", "[Suggestion] cache at forecast.ts line 42. No must-fix issues."), 300);
+    stop(te, "test-engineer", L("新增 6 個邊界測試，全部通過。", "Added 6 edge-case tests, all pass."), 300);
+    stop(qa, "qa-manager", L("可以交付。附 1 項建議、1 個盲點。", "Ready to ship, with 1 suggestion and 1 blind spot."), 300);
+    const pm2 = spawn(null, "project-manager", L("寫結案報告", "Write the wrap-up report"), 400);
+    stop(pm2, "project-manager", L("結案報告完成。", "Wrap-up report done."), 600);
+    E(500, { hook_event_name: "Stop", last_assistant_message: L("庫存預測功能完成：API、7 天預測模型（MAPE 18.4%）、管理後台頁。紅隊提醒：機器搬遷後的預測要另外處理。", "Inventory forecast done: API, 7-day model (MAPE 18.4%) and admin page. Red team flags relocated machines.") });
+    return out;
   }
 
   function startDemo() {
-    setLive(true, "示範中");
-    notice("<b>示範模式</b>：這是模擬的一輪工作，讓你先看畫面長怎樣。接上後台之後就會顯示真的紀錄。");
-    $("#sessionSel").innerHTML = `<option>示範：庫存預測功能</option>`;
-    const script = demoScript();
-    const t0 = script[0].ts;
-    let i = 0;
-    const speed = 1.6;
-    // 一打開就先放一半，讓畫面不是空的
-    const warm = Math.floor(script.length * 0.55);
-    for (; i < warm; i++) { const e = Object.assign({}, script[i]); EVENTS.push(e); }
-    rebuild(); render();
+    setLive(true, "demo"); notice("demoNotice");
+    $("#sessionSel").innerHTML = `<option>${T.demoSession}</option>`;
+    let script = demoScript(), i = Math.floor(script.length * 0.55), scriptLang = LANG;
+    EVENTS = script.slice(0, i).map(e => Object.assign({}, e)); rebuild(); render();
     function tick() {
+      if (scriptLang !== LANG) { // 換語言就用新語言的劇本，從同一個位置繼續
+        script = demoScript(); scriptLang = LANG; EVENTS = script.slice(0, i).map(e => Object.assign({}, e)); rebuild(); render();
+      }
       if (i >= script.length) {
-        setLive(false, "示範結束，6 秒後重播");
-        setTimeout(() => { EVENTS = []; i = 0; rebuild(); setLive(true, "示範中"); tick(); }, 6000);
+        setLive(false, "demoEnd");
+        setTimeout(() => { script = demoScript(); scriptLang = LANG; EVENTS = []; i = 0; rebuild(); setLive(true, "demo"); tick(); }, 6000);
         return;
       }
-      const e = Object.assign({}, script[i]); const prev = i ? script[i - 1].ts : t0;
-      EVENTS.push(e); apply(e); render(); i++;
-      setTimeout(tick, Math.min(1400, Math.max(120, (script[i] ? script[i].ts - e.ts : 300) / speed)));
+      const e = Object.assign({}, script[i]); EVENTS.push(e); apply(e); render(); i++;
+      setTimeout(tick, Math.min(1400, Math.max(120, (script[i] ? script[i].ts - e.ts : 300) / 1.6)));
     }
     setTimeout(tick, 600);
   }
 
+  applyStatic();
   if (DEMO) startDemo(); else startLive();
 })();
 </script>
