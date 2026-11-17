@@ -26,6 +26,7 @@ Lookup order: **environment variables → `config/office.json` → `config/offic
 | `cloudflare.account_id` | ✓ | | `CLOUDFLARE_ACCOUNT_ID` | 在自己電腦部署用 / for local deploys |
 | `cloudflare.api_token` | ✓ | | `CLOUDFLARE_API_TOKEN` | 在自己電腦部署用 / for local deploys |
 | `limits.max_dispatch_per_round` | ✓ | 環境變數 `OFFICE_MAX_DISPATCH` | | 每輪派工上限，0 = 不限 / per-round dispatch cap, 0 = none |
+| `guard.enforce_hierarchy` | ✓ | | | 階層守門：主管只能派自己的部屬（預設開）/ enforce the chain of command (on by default) |
 | `guard.tool_repo` | ✓ | 環境變數 `OFFICE_TOOL_REPO` | | 公開工具專案的名稱 / name of the public tool repo |
 | `guard.tool_paths` | 範本 template | | | 公開專案允許的檔案 / files allowed in the public repo |
 | `sync.upstream_repo` | 範本 template | Repository variable `OFFICE_UPSTREAM_REPO` | | 私人專案要從哪裡同步工具 / where the private repo syncs the tool from |

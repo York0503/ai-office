@@ -118,14 +118,16 @@ export class Office extends DurableObject {
       const body = JSON.stringify(e).slice(0, 32000);
       this.sql.exec("INSERT INTO events (ts, session, event, agent_id, body) VALUES (?, ?, ?, ?, ?)",
         ts, session, ev, e.agent_id ? String(e.agent_id).slice(0, 120) : null, body);
-      const title = ev === "UserPromptSubmit" && !e.agent_id && e.prompt ? String(e.prompt).slice(0, 80) : null;
+      const promptText = String(e.prompt || "").trimStart();
+      const isSystem = promptText.startsWith("<") || promptText.slice(0, 200).includes("[Subagent hand-back]");
+      const title = ev === "UserPromptSubmit" && !e.agent_id && promptText && !isSystem ? promptText.slice(0, 80) : null;
       this.sql.exec(`INSERT INTO sessions (session, first_ts, last_ts, n, title, ended) VALUES (?, ?, ?, 1, ?, ?)
         ON CONFLICT(session) DO UPDATE SET
           last_ts = MAX(sessions.last_ts, excluded.last_ts),
           n = sessions.n + 1,
           title = COALESCE(sessions.title, excluded.title),
           ended = CASE WHEN excluded.ended = 1 THEN 1 WHEN ? = 'UserPromptSubmit' THEN 0 ELSE sessions.ended END`,
-        session, ts, ts, title, ev === "SessionEnd" ? 1 : 0, ev);
+        session, ts, ts, title, ev === "SessionEnd" ? 1 : 0, isSystem ? "" : ev);
       n++;
     }
     if (Math.random() < 0.02) this.cleanup();

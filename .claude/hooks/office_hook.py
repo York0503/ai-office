@@ -86,10 +86,12 @@ def _agent_from_file(path):
 
 
 def collect_thinking(inp, secrets):
+    """回傳 (思考事件, 診斷)。診斷是累計數字：找到幾個紀錄檔、幾段思考、幾段有內容。"""
     tp = inp.get("transcript_path")
     sid = inp.get("session_id") or "unknown"
     if not tp:
-        return []
+        return [], {"transcript_exists": False, "files_found": 0, "thinking_total": 0,
+                    "thinking_nonempty": 0, "thinking_redacted": 0, "note": "hook 沒有收到 transcript_path"}
     main = pathlib.Path(tp)
     files = {str(main): None}
     for pattern in (main.parent / main.stem / "subagents" / "*.jsonl", main.parent / main.stem / "*.jsonl"):
@@ -105,13 +107,17 @@ def collect_thinking(inp, secrets):
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
-        return []
+        return [], None
     out = []
     try:
         try:
             state = json.loads(state_path.read_text())
         except Exception:
             state = {}
+        diag = state.get("_diag") or {"thinking_total": 0, "thinking_nonempty": 0, "thinking_redacted": 0}
+        diag["transcript_exists"] = main.exists()
+        diag["files_found"] = sum(1 for f in files if os.path.exists(f))
+        diag["transcript_dir"] = sorted(os.listdir(main.parent))[:15] if main.parent.exists() else []
         for path, file_agent in files.items():
             try:
                 size = os.path.getsize(path)
@@ -126,7 +132,7 @@ def collect_thinking(inp, secrets):
             end = chunk.rfind(b"\n")
             if end < 0:
                 continue
-            state[path] = off + end + 1
+            state[str(path)] = off + end + 1
             for line in chunk[:end].splitlines():
                 try:
                     obj = json.loads(line)
@@ -136,9 +142,14 @@ def collect_thinking(inp, secrets):
                 if obj.get("type") != "assistant" or not isinstance(msg, dict):
                     continue
                 for block in msg.get("content") or []:
+                    if isinstance(block, dict) and block.get("type") == "redacted_thinking":
+                        diag["thinking_total"] += 1
+                        diag["thinking_redacted"] += 1
                     if isinstance(block, dict) and block.get("type") == "thinking":
                         text = (block.get("thinking") or "").strip()
+                        diag["thinking_total"] += 1
                         if text:
+                            diag["thinking_nonempty"] += 1
                             out.append({
                                 "hook_event_name": "Thinking",
                                 "session_id": sid,
@@ -146,11 +157,12 @@ def collect_thinking(inp, secrets):
                                 "text": trim(oc.mask_text(text, secrets), 4000),
                                 "ts": int(time.time() * 1000),
                             })
+        state["_diag"] = {k: diag[k] for k in ("thinking_total", "thinking_nonempty", "thinking_redacted")}
         state_path.write_text(json.dumps(state))
     finally:
         fcntl.flock(lock, fcntl.LOCK_UN)
         lock.close()
-    return out[:30]
+    return out[:30], diag
 
 
 def main():
@@ -163,7 +175,13 @@ def main():
     events = [build_event(inp, secrets)]
     if cfg.get("monitor", {}).get("send_thinking", True):
         try:
-            events += collect_thinking(inp, secrets)
+            thoughts, diag = collect_thinking(inp, secrets)
+            events += thoughts
+            # 每次有人交回結果或整輪結束時，送一筆累計的診斷，方便查思考摘要為什麼沒出現
+            if diag and inp.get("hook_event_name") in ("SubagentStop", "Stop", "SessionStart"):
+                events.append(dict(diag, hook_event_name="Diag", session_id=inp.get("session_id"),
+                                   remote=bool(os.environ.get("CLAUDE_CODE_REMOTE")),
+                                   ts=int(time.time() * 1000)))
         except Exception as e:
             debug(f"thinking: {e!r}")
     oc.post_events(cfg, events, wait=True)

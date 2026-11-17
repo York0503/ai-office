@@ -247,6 +247,9 @@ svg.sprite { image-rendering: pixelated; display: block; }
       youSaid: "你交代：", reading: "看你交代的事", received: "收到：", started: "上工", gotTask: "接到任務：", assignedBy: x => `（${x} 指派）`,
       doneTool: "完成：", failTool: "失敗：", reported: "交回成果", reportX: "交回成果：", thinking: "思考：", delivered2: "交付給你", deliveredX: "交付：",
       stopFail: "這輪因錯誤中斷", notice: "通知：", sessStart: "開始對話", sessEnd: "對話結束", compact: "整理對話（壓縮）",
+      handback: x => x ? `收到 ${x} 的回報` : "收到部屬的回報",
+      diag: d => `診斷：紀錄檔 ${d.files_found} 個、思考 ${d.thinking_total} 段（有內容 ${d.thinking_nonempty} 段${d.thinking_redacted ? "、加密 " + d.thinking_redacted + " 段" : ""}）${d.transcript_exists === false ? "，找不到主對話紀錄檔" : ""}`,
+      hierarchyBlocked: "派工被擋（不符合階層）：",
       taskAdd: "新增待辦：", taskDone: "完成待辦：", dispatchBlocked: n => `派工被擋：已達本輪上限 ${n} 人次`, pushBlocked: "推送被擋：",
       // 動作 / tools
       tBash: "執行指令：", tRead: "讀檔：", tWrite: "寫檔：", tEdit: "修改：", tNb: "改筆記本：", tSearch: "上網搜尋：", tFetch: "讀網頁：",
@@ -274,6 +277,9 @@ svg.sprite { image-rendering: pixelated; display: block; }
       youSaid: "You: ", reading: "Reading your request", received: "Received: ", started: "Started", gotTask: "Got task: ", assignedBy: x => ` (assigned by ${x})`,
       doneTool: "Done: ", failTool: "Failed: ", reported: "Reported back", reportX: "Report: ", thinking: "Thinking: ", delivered2: "Delivered", deliveredX: "Delivered: ",
       stopFail: "Round stopped by an error", notice: "Notice: ", sessStart: "Session started", sessEnd: "Session ended", compact: "Compacting conversation",
+      handback: x => x ? `Report from ${x}` : "Report from a subagent",
+      diag: d => `Diagnostics: ${d.files_found} transcript file(s), ${d.thinking_total} thinking block(s) (${d.thinking_nonempty} with text${d.thinking_redacted ? ", " + d.thinking_redacted + " redacted" : ""})${d.transcript_exists === false ? ", main transcript not found" : ""}`,
+      hierarchyBlocked: "Dispatch blocked (hierarchy): ",
       taskAdd: "Task added: ", taskDone: "Task done: ", dispatchBlocked: n => `Dispatch blocked: round limit of ${n} reached`, pushBlocked: "Push blocked: ",
       tBash: "Run: ", tRead: "Read: ", tWrite: "Write: ", tEdit: "Edit: ", tNb: "Edit notebook: ", tSearch: "Search web: ", tFetch: "Fetch: ",
       sep: ": ", paren: x => ` (${x})`,
@@ -367,11 +373,27 @@ svg.sprite { image-rendering: pixelated; display: block; }
     return x;
   }
   const keyOf = e => e.agent_id || "main";
+  const isSystemPrompt = p => { p = String(p || "").trimStart(); return /^<(agent-message|task-notification|system-reminder|command-)/.test(p) || p.slice(0, 200).indexOf("[Subagent hand-back]") >= 0; };
+  const cleanSystem = p => String(p || "").replace(/<[^>]+>/g, " ").replace(/\[Subagent hand-back\]/g, " ").replace(/\s+/g, " ").trim();
   function push(x, ts, cls, text) { x.timeline.push({ ts, cls, text }); if (x.timeline.length > 400) x.timeline.shift(); }
 
   function apply(e) {
     const ev = e.hook_event_name, ts = e.ts || Date.now();
     e._cat = "other";
+    if (ev === "UserPromptSubmit" && !e.agent_id && isSystemPrompt(e.prompt)) {
+      // 部屬交回結果、背景通知：不是使用者的新指令，不開新的一輪
+      const p = String(e.prompt || "");
+      const m = p.match(/from="([^"]+)"/);
+      let k = m ? (S.inst[m[1]] ? m[1] : Object.keys(S.inst).find(z => z.indexOf(m[1]) >= 0 || m[1].indexOf(z) >= 0)) : null;
+      const x = k ? S.inst[k] : null;
+      if (x) { if (x.status !== "error") x.status = "done"; x.end = x.end || ts; x.action = T.reported; if (!x.report) x.report = cleanSystem(p); }
+      const who = x ? roleName(x.type) : "";
+      push(inst("main", "boss"), ts, "", T.handback(who));
+      e._who = x ? x.type : "boss"; e._what = T.handback(who) + T.sep + short(cleanSystem(p), 100); e._cat = "report"; return;
+    }
+    if (ev === "Diag") {
+      e._who = "boss"; e._what = T.diag(e); e._cat = "think"; return;
+    }
     if (ev === "UserPromptSubmit" && !e.agent_id) {
       S.rounds.push({ idx: S.rounds.length + 1, prompt: e.prompt || "", start: ts, end: null, keys: new Set(["main"]) });
       const b = inst("main", "boss"); b.status = "working"; b.action = T.reading; b.report = ""; b.start = ts;
@@ -427,8 +449,9 @@ svg.sprite { image-rendering: pixelated; display: block; }
       const x = inst(keyOf(e), e.agent_type); S.counters.errors++;
       const i = e.tool_input || {};
       const p = [...S.pending].reverse().find(p => !p.used && p.type === i.subagent_type); if (p) p.used = true;
-      push(x, ts, "er", T.dispatchBlocked(e.limit));
-      e._who = x.type; e._what = T.dispatchBlocked(e.limit) + (i.subagent_type ? T.paren(roleName(i.subagent_type)) : ""); e._cat = "error"; return;
+      const msg = e.block_kind === "hierarchy" ? T.hierarchyBlocked + short(e.reason, 80) : T.dispatchBlocked(e.limit) + (i.subagent_type ? T.paren(roleName(i.subagent_type)) : "");
+      push(x, ts, "er", msg);
+      e._who = x.type; e._what = msg; e._cat = "error"; return;
     }
     if (ev === "PushBlocked") {
       const x = inst(keyOf(e), e.agent_type); S.counters.errors++;

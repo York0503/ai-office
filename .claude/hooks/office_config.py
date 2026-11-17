@@ -61,6 +61,29 @@ def load():
     return cfg
 
 
+# ---------------- 組織表與系統訊息 ----------------
+
+SYSTEM_PROMPT_PREFIXES = ("<agent-message", "<task-notification", "<system-reminder", "<command-")
+
+
+def is_system_prompt(prompt):
+    """部屬交回結果、背景任務通知這類由系統產生的訊息，不是使用者交代的新事情。"""
+    p = (prompt or "").lstrip()
+    return p.startswith(SYSTEM_PROMPT_PREFIXES) or "[Subagent hand-back]" in p[:200]
+
+
+def load_roster():
+    """回傳 (角色表, 每個角色可以派的人)；老闆可以派專案經理和所有部門主管。"""
+    data = _read_json("office/src/roster.json")
+    roles = {r["slug"]: r for r in data.get("roles", [])}
+    allowed = {slug: set() for slug in roles}
+    for r in roles.values():
+        parent = r.get("parent")
+        if parent:
+            allowed.setdefault(parent, set()).add(r["slug"])
+    return roles, allowed
+
+
 # ---------------- 敏感資料 ----------------
 
 SENSITIVE_NAMES = {".env", ".dev.vars", "office.json", "credentials", "credentials.json",
